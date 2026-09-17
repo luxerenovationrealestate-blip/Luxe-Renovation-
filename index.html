@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxe Renovation | Exclusive Interior Craftsmanship in Copenhagen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #050505;
+            --bg-card: #0F0F0F;
+            --bg-card-hover: #161616;
+            --border-subtle: #222222;
+            --gold: #D4AF37;
+            --gold-light: #F3E5AB;
+            --gold-dark: #AA820A;
+            --text-main: #F4F4F4;
+            --text-muted: #999999;
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, .serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* HEADER */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(5, 5, 5, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            transition: var(--transition);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 3rem;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo-main {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: #FFFFFF;
+            text-transform: uppercase;
+        }
+
+        .logo-sub {
+            font-size: 8px;
+            letter-spacing: 0.4em;
+            color: var(--gold);
+            text-transform: uppercase;
+            margin-top: -2px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #CCCCCC;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover {
+            color: var(--gold);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        /* LANGUAGE SWITCHER */
+        .lang-switcher {
+            display: flex;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 50px;
+            padding: 3px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .lang-btn.active {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+            color: #000;
+            padding: 0.9rem 2rem;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            text-decoration: none;
+            border-radius: 2px;
+            transition: var(--transition);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
+            display: inline-block;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.35);
+        }
+
+        .mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* HERO SECTION */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 180px 2rem 120px;
+            text-align: center;
+            background: radial-gradient(circle at 50% 30%, #1a160d 0%, var(--bg-deep) 70%);
+            position: relative;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0; right: 0;
+            height: 150px;
+            background: linear-gradient(to top, var(--bg-deep), transparent);
+        }
+
+        .hero-content {
+            max-width: 900px;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 50px;
+            color: var(--gold);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.8rem, 6vw, 5.2rem);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1.8rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero h1 span {
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .hero p {
+            font-size: clamp(1.1rem, 1.8vw, 1.25rem);
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 3rem;
+            font-weight: 300;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1.25rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-subtle);
+            color: #fff;
+            padding: 0.9rem 2rem;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        /* GENERAL SECTIONS */
+        section {
+            padding: 130px 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 6rem;
+        }
+
+        .section-header span {
+            color: var(--gold);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.35em;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 1rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+            margin-bottom: 1.2rem;
+            letter-spacing: -0.01em;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            font-weight: 300;
+        }
+
+        /* SERVICES GRID */
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .service-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 3.5rem 2.5rem;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .service-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+            background: var(--bg-card-hover);
+        }
+
+        .service-card.featured {
+            border-color: var(--gold);
+            background: linear-gradient(145deg, #121008, var(--bg-card));
+        }
+
+        .service-tag {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            color: var(--gold);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .service-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .service-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+        }
+
+        .service-list {
+            list-style: none;
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 1.5rem;
+        }
+
+        .service-list li {
+            font-size: 0.9rem;
+            color: #ddd;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 300;
+        }
+
+        .service-list li::before {
+            content: '—';
+            color: var(--gold);
+        }
+
+        /* CALCULATOR */
+        .calculator-wrapper {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 4rem;
+            max-width: 1000px;
+            margin: 0 auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .calc-group {
+            margin-bottom: 3rem;
+        }
+
+        .calc-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: block;
+            font-weight: 600;
+        }
+
+        .calc-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .calc-btn {
+            background: var(--bg-deep);
+            border: 1px solid var(--border-subtle);
+            padding: 1.25rem;
+            text-align: center;
+            cursor: pointer;
+            color: #fff;
+            transition: var(--transition);
+            border-radius: 2px;
+        }
+
+        .calc-btn.active {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .calc-btn span {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .calc-btn small {
+            font-size: 11px;
+            color: var(--gold);
+        }
+
+        .range-slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .range-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            background: var(--border-subtle);
+            border-radius: 2px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--gold);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+        }
+
+        .calc-footer {
+            background: var(--bg-deep);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .calc-total {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .calc-total span {
+            color: var(--gold);
+            font-size: 1.2rem;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* PRICING TABLE */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 2.5rem;
+        }
+
+        .pricing-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 3rem;
+        }
+
+        .pricing-box h3 {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 0.95rem;
+            gap: 1rem;
+        }
+
+        .price-item span:first-child {
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .price-item span:last-child {
+            font-family: 'Playfair Display', serif;
+            color: var(--gold);
+            font-size: 1.15rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* CONTACT SECTION */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 5rem;
+        }
+
+        .contact-info-item {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+            align-items: flex-start;
+        }
+
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .contact-info-item span {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        .contact-info-item a, .contact-info-item p {
+            color: #fff;
+            text-decoration: none;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+        }
+
+        .form-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 3.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            background: var(--bg-deep);
+            border: 1px solid var(--border-subtle);
+            padding: 1rem;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            border-color: var(--gold);
+        }
+
+        textarea.form-control {
+            resize: none;
+            height: 120px;
+        }
+
+        /* FOOTER */
+        footer {
+            border-top: 1px solid var(--border-subtle);
+            padding: 4rem 3rem;
+            background: var(--bg-deep);
+            text-align: center;
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .footer-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        @media(max-width: 992px) {
+            .nav-links, .header-right .btn-gold { display: none; }
+            .mobile-toggle { display: block; }
+            .contact-grid, .service-grid { grid-template-columns: 1fr; }
+            .calculator-wrapper { padding: 2rem; }
+            .nav-container { padding: 0 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header>
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <span class="logo-main">Luxe Renovation</span>
+                <span class="logo-sub" data-i18n="sub_cph">København</span>
+            </a>
+
+            <ul class="nav-links">
+                <li><a href="#services" data-i18n="nav_services">Services</a></li>
+                <li><a href="#calculator" data-i18n="nav_calc">Calculator</a></li>
+                <li><a href="#pricing" data-i18n="nav_pricing">Prices 2026</a></li>
+                <li><a href="#handyman" data-i18n="nav_handyman">Handyman</a></li>
+                <li><a href="#contacts" data-i18n="nav_contacts">Contact</a></li>
+            </ul>
+
+            <div class="header-right">
+                <div class="lang-switcher">
+                    <button class="lang-btn active" onclick="setLanguage('en')">EN</button>
+                    <button class="lang-btn" onclick="setLanguage('da')">DA</button>
+                </div>
+                <a href="#calculator" class="btn-gold" data-i18n="btn_calc">Get Estimate</a>
+            </div>
+
+            <button class="mobile-toggle" onclick="toggleMobileMenu()">☰</button>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge" data-i18n="hero_badge">Exclusive Interior Finishing in Copenhagen</div>
+            <h1 data-i18n="hero_title">Uncompromising Quality in Every <span>Detail</span></h1>
+            <p data-i18n="hero_desc">Professional turnkey interior renovation, painting, and tiling for apartments, homes, and offices with premium Danish standards.</p>
+            <div class="hero-buttons">
+                <a href="#calculator" class="btn-gold" data-i18n="hero_btn_calc">Calculate Cost</a>
+                <a href="#pricing" class="btn-outline" data-i18n="hero_btn_prices">View Prices 2026</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SERVICES SECTION -->
+    <section id="services">
+        <div class="section-header">
+            <span data-i18n="srv_subtitle">Execution Standards</span>
+            <h2 data-i18n="srv_title">Precision & Aesthetics</h2>
+            <p data-i18n="srv_desc">Comprehensive finishing services executed with meticulous attention to geometric perfection and cleanliness.</p>
+        </div>
+
+        <div class="services-grid">
+            <div class="service-card">
+                <span class="service-tag" data-i18n="p1_tag">Basic Package</span>
+                <h3 data-i18n="p1_title">Cosmetic Renovation</h3>
+                <p data-i18n="p1_desc">Ideal for fast interior updates, refreshing walls, and modernizing spaces.</p>
+                <ul class="service-list">
+                    <li data-i18n="p1_l1">Old wallpaper & coating removal</li>
+                    <li data-i18n="p1_l2">Partial wall skimming & prep</li>
+                    <li data-i18n="p1_l3">Wall and ceiling painting (2 layers)</li>
+                    <li data-i18n="p1_l4">Baseboard installation</li>
+                </ul>
+            </div>
+
+            <div class="service-card featured">
+                <span class="service-tag" data-i18n="p2_tag">Most Popular</span>
+                <h3 data-i18n="p2_title">Complete Overhaul</h3>
+                <p data-i18n="p2_desc">Deep space modernization with total alignment, drywall, and tiling.</p>
+                <ul class="service-list">
+                    <li data-i18n="p2_l1">Full demolition and waste handling</li>
+                    <li data-i18n="p2_l2">Plastering by laser guides</li>
+                    <li data-i18n="p2_l3">Drywall framing & partitioning</li>
+                    <li data-i18n="p2_l4">Bathroom & kitchen tiling</li>
+                    <li data-i18n="p2_l5">Flawless fine painting finish</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <span class="service-tag" data-i18n="p3_tag">Exclusive Package</span>
+                <h3 data-i18n="p3_title">Designer Renovation</h3>
+                <p data-i18n="p3_desc">Custom architecture, large-format porcelain, and complex finishes.</p>
+                <ul class="service-list">
+                    <li data-i18n="p3_l1">Complex architectural designs</li>
+                    <li data-i18n="p3_l2">Large-format tiles (60x60+)</li>
+                    <li data-i18n="p3_l3">Decorative plaster & stucco</li>
+                    <li data-i18n="p3_l4">Hidden curtain tracks & LED integration</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- CALCULATOR SECTION -->
+    <section id="calculator">
+        <div class="section-header">
+            <span data-i18n="calc_subtitle">Interactive Tool</span>
+            <h2 data-i18n="calc_title">Project Cost Calculator</h2>
+            <p data-i18n="calc_desc">Estimate labor costs for your property (excluding materials, excl. MOMS / sole proprietorship).</p>
+        </div>
+
+        <div class="calculator-wrapper">
+            <!-- Web3Forms Calculator Form Container -->
+            <form action="https://api.web3forms.com/submit" method="POST" id="calc-submit-form">
+                <input type="hidden" name="access_key" value="B1982545-3109-4020-b6d2-6df99a2c5bdc">
+                <input type="hidden" name="subject" value="New Estimate Request from Luxe Renovation Calculator">
+                <input type="hidden" name="from_name" value="Luxe Renovation Website">
+                <input type="hidden" id="calc-hidden-details" name="calculation_summary" value="">
+
+                <div class="calc-group">
+                    <label class="calc-label" data-i18n="c_type_label">1. Property Type</label>
+                    <div class="calc-options">
+                        <div class="calc-btn active" onclick="selectCalcOption(this, 'type')">
+                            <span data-i18n="c_type_apt">Apartment</span>
+                        </div>
+                        <div class="calc-btn" onclick="selectCalcOption(this, 'type')">
+                            <span data-i18n="c_type_house">House</span>
+                        </div>
+                        <div class="calc-btn" onclick="selectCalcOption(this, 'type')">
+                            <span data-i18n="c_type_office">Office</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calc-group">
+                    <label class="calc-label" data-i18n="c_tier_label">2. Renovation Tier</label>
+                    <div class="calc-options">
+                        <div class="calc-btn active" onclick="selectCalcOption(this, 'tier', 450)">
+                            <span data-i18n="c_tier_cosmetic">Cosmetic</span>
+                            <small>450 DKK / m²</small>
+                        </div>
+                        <div class="calc-btn" onclick="selectCalcOption(this, 'tier', 850)">
+                            <span data-i18n="c_tier_capital">Standard</span>
+                            <small>850 DKK / m²</small>
+                        </div>
+                        <div class="calc-btn" onclick="selectCalcOption(this, 'tier', 1400)">
+                            <span data-i18n="c_tier_design">Designer</span>
+                            <small>1,400 DKK / m²</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calc-group">
+                    <div class="range-slider-header">
+                        <label class="calc-label" style="margin:0;" data-i18n="c_area_label">3. Total Area</label>
+                        <div class="range-value" id="area-display">75 m²</div>
+                    </div>
+                    <input type="range" id="area-range" min="20" max="300" value="75" oninput="updateCalculator()">
+                </div>
+
+                <!-- Contact inputs inside calculator for direct submission -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 2rem;">
+                    <div class="form-group" style="margin:0;">
+                        <label data-i18n="form_name">Your Name</label>
+                        <input type="text" name="name" required class="form-control" placeholder="John Doe">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label data-i18n="form_phone">Phone Number</label>
+                        <input type="tel" name="phone" required class="form-control" placeholder="+45 ...">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label data-i18n="form_email">Email Address</label>
+                        <input type="email" name="email" required class="form-control" placeholder="john@example.com">
+                    </div>
+                </div>
+
+                <div class="calc-footer" style="margin-top: 0;">
+                    <div>
+                        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); display: block; margin-bottom: 0.3rem;" data-i18n="c_total_label">Estimated Labor Cost</span>
+                        <div class="calc-total" id="total-price">33,750 <span>DKK</span></div>
+                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 0.3rem;" data-i18n="c_note">* Excl. materials & MOMS (selvstændig)</span>
+                    </div>
+                    <button type="submit" class="btn-gold" data-i18n="c_btn_book">Book Consultation</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- PRICING TABLE SECTION -->
+    <section id="pricing">
+        <div class="section-header">
+            <span data-i18n="price_subtitle">Official Rates</span>
+            <h2 data-i18n="price_title">Price List 2026</h2>
+            <p data-i18n="price_desc">Transparent labor pricing. All rates are quoted excluding materials and without MOMS.</p>
+        </div>
+
+        <div class="pricing-grid">
+            <div class="pricing-box">
+                <h3 data-i18n="pr_cat1">Demolition & Prep</h3>
+                <div class="price-item">
+                    <span data-i18n="pr_1_1">Wallpaper / paint removal</span>
+                    <span>45 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_1_2">Partition demolition</span>
+                    <span>120 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_1_3">Flooring removal</span>
+                    <span>55 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_1_4">Deep priming</span>
+                    <span>25 DKK / m²</span>
+                </div>
+            </div>
+
+            <div class="pricing-box">
+                <h3 data-i18n="pr_cat2">Walls & Ceilings</h3>
+                <div class="price-item">
+                    <span data-i18n="pr_2_1">Plastering by laser guide</span>
+                    <span>160 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_2_2">Skimming with fiberglass mesh</span>
+                    <span>140 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_2_3">Painting (2 coats)</span>
+                    <span>65 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_2_4">Wallpaper hanging</span>
+                    <span>90 DKK / m²</span>
+                </div>
+            </div>
+
+            <div class="pricing-box">
+                <h3 data-i18n="pr_cat3">Tiling & Flooring</h3>
+                <div class="price-item">
+                    <span data-i18n="pr_3_1">Standard tile installation</span>
+                    <span>350 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_3_2">Large-format tiles (60x60+)</span>
+                    <span>450 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_3_3">Bathroom waterproofing</span>
+                    <span>120 DKK / m²</span>
+                </div>
+                <div class="price-item">
+                    <span data-i18n="pr_3_4">Baseboards installation</span>
+                    <span>65 DKK / m</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HANDYMAN SECTION -->
+    <section id="handyman">
+        <div class="contact-grid" style="align-items: center;">
+            <div>
+                <span style="color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.35em; font-weight: 600; display: block; margin-bottom: 1rem;" data-i18n="hm_subtitle">Rapid Assistance</span>
+                <h2 style="font-size: clamp(2.2rem, 3vw, 3rem); margin-bottom: 1.5rem;" data-i18n="hm_title">Handyman Hourly Service</h2>
+                <p style="color: var(--text-muted); font-weight: 300; margin-bottom: 2rem;" data-i18n="hm_desc">Need furniture assembly, curtain rod installation, TV mounting, or minor repairs? Professional master ready for prompt dispatch.</p>
+                <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 2.5rem; margin-bottom: 2rem;">
+                    <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted); display: block;" data-i18n="hm_rate_label">Hourly Rate</span>
+                    <div style="font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--gold); font-weight: 700; margin: 0.3rem 0;">450 <span style="font-size: 1rem; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif;">DKK / hour</span></div>
+                    <span style="font-size: 11px; color: var(--text-muted);" data-i18n="hm_note">* Minimum 2 hours order. Excl. MOMS.</span>
+                </div>
+                <a href="#contacts" class="btn-gold" data-i18n="hm_btn">Book Handyman</a>
+            </div>
+
+            <div class="form-box">
+                <h3 style="font-size: 1.4rem; margin-bottom: 1.5rem;" data-i18n="hm_list_title">Popular Tasks:</h3>
+                <ul class="service-list" style="border: none; padding: 0;">
+                    <li data-i18n="hm_t1">Shelves, mirrors & picture hanging</li>
+                    <li data-i18n="hm_t2">Cabinet and custom furniture assembly</li>
+                    <li data-i18n="hm_t3">Minor plumbing and fixture adjustments</li>
+                    <li data-i18n="hm_t4">Door handles, locks, & threshold fitting</li>
+                    <li data-i18n="hm_t5">Bathroom silicone sealing and grouting</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACTS SECTION -->
+    <section id="contacts">
+        <div class="contact-grid">
+            <div>
+                <span style="color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 0.35em; font-weight: 600; display: block; margin-bottom: 1rem;" data-i18n="cnt_subtitle">Get in Touch</span>
+                <h2 style="font-size: clamp(2.2rem, 3.2vw, 3rem); margin-bottom: 1.5rem;" data-i18n="cnt_title">Let's Discuss Your Project</h2>
+                <p style="color: var(--text-muted); font-weight: 300; margin-bottom: 3rem;" data-i18n="cnt_desc">Reach out directly by phone or submit your project details. All requests route straight to our team.</p>
+
+                <div class="contact-info-item">
+                    <div class="contact-icon">📞</div>
+                    <div>
+                        <span data-i18n="cnt_phone_lbl">Phone / WhatsApp</span>
+                        <a href="tel:+4531809770">+45 31 80 97 70</a>
+                    </div>
+                </div>
+
+                <div class="contact-info-item">
+                    <div class="contact-icon">✉️</div>
+                    <div>
+                        <span data-i18n="cnt_email_lbl">Email</span>
+                        <a href="mailto:luxerenovationrealestate@gmail.com" style="font-size: 1.1rem;">luxerenovationrealestate@gmail.com</a>
+                    </div>
+                </div>
+
+                <div class="contact-info-item">
+                    <div class="contact-icon">📍</div>
+                    <div>
+                        <span data-i18n="cnt_addr_lbl">Address</span>
+                        <p style="font-size: 1.15rem; color: #fff;">Speditørvej 10, 2450 København SV</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-box">
+                <h3 style="font-size: 1.5rem; margin-bottom: 1.5rem;" data-i18n="form_title">Send Inquiry</h3>
+                <!-- Web3Forms Direct Contact Form -->
+                <form action="https://api.web3forms.com/submit" method="POST">
+                    <input type="hidden" name="access_key" value="B1982545-3109-4020-b6d2-6df99a2c5bdc">
+                    <input type="hidden" name="subject" value="New Direct Inquiry from Luxe Renovation Website">
+                    <input type="hidden" name="from_name" value="Luxe Renovation Website">
+
+                    <div class="form-group">
+                        <label data-i18n="form_name">Your Name</label>
+                        <input type="text" name="name" required class="form-control" placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="form_phone">Phone Number</label>
+                        <input type="tel" name="phone" required class="form-control" placeholder="+45 ...">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="form_email">Email Address</label>
+                        <input type="email" name="email" required class="form-control" placeholder="john@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label data-i18n="form_msg">Project Details</label>
+                        <textarea name="message" required class="form-control" placeholder="Describe your renovation needs..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-gold" style="width: 100%; text-align: center;" data-i18n="form_btn">Send Message</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-container">
+            <div>
+                <span class="logo-main" style="font-size: 1.3rem;">Luxe Renovation</span>
+                <p class="footer-text" data-i18n="ftr_sub">Sole Proprietorship (uden moms). Copenhagen, Denmark.</p>
+            </div>
+            <div class="footer-text" style="text-align: right;">
+                <p>&copy; 2026 Luxe Renovation. All rights reserved.</p>
+                <p>Speditørvej 10, 2450 København SV | +45 31 80 97 70</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT TRANSLATIONS & LOGIC -->
+    <script>
+        const translations = {
+            en: {
+                sub_cph: "Copenhagen",
+                nav_services: "Services",
+                nav_calc: "Calculator",
+                nav_pricing: "Prices 2026",
+                nav_handyman: "Handyman",
+                nav_contacts: "Contact",
+                btn_calc: "Get Estimate",
+                hero_badge: "Exclusive Interior Finishing in Copenhagen",
+                hero_title: "Uncompromising Quality in Every <span>Detail</span>",
+                hero_desc: "Professional turnkey interior renovation, painting, and tiling for apartments, homes, and offices with premium Danish standards.",
+                hero_btn_calc: "Calculate Cost",
+                hero_btn_prices: "View Prices 2026",
+                srv_subtitle: "Execution Standards",
+                srv_title: "Precision & Aesthetics",
+                srv_desc: "Comprehensive finishing services executed with meticulous attention to geometric perfection and cleanliness.",
+                p1_tag: "Basic Package",
+                p1_title: "Cosmetic Renovation",
+                p1_desc: "Ideal for fast interior updates, refreshing walls, and modernizing spaces.",
+                p1_l1: "Old wallpaper & coating removal",
+                p1_l2: "Partial wall skimming & prep",
+                p1_l3: "Wall and ceiling painting (2 layers)",
+                p1_l4: "Baseboard installation",
+                p2_tag: "Most Popular",
+                p2_title: "Complete Overhaul",
+                p2_desc: "Deep space modernization with total alignment, drywall, and tiling.",
+                p2_l1: "Full demolition and waste handling",
+                p2_l2: "Plastering by laser guides",
+                p2_l3: "Drywall framing & partitioning",
+                p2_l4: "Bathroom & kitchen tiling",
+                p2_l5: "Flawless fine painting finish",
+                p3_tag: "Exclusive Package",
+                p3_title: "Designer Renovation",
+                p3_desc: "Custom architecture, large-format porcelain, and complex finishes.",
+                p3_l1: "Complex architectural designs",
+                p3_l2: "Large-format tiles (60x60+)",
+                p3_l3: "Decorative plaster & stucco",
+                p3_l4: "Hidden curtain tracks & LED integration",
+                calc_subtitle: "Interactive Tool",
+                calc_title: "Project Cost Calculator",
+                calc_desc: "Estimate labor costs for your property (excluding materials, excl. MOMS / sole proprietorship).",
+                c_type_label: "1. Property Type",
+                c_type_apt: "Apartment",
+                c_type_house: "House",
+                c_type_office: "Office",
+                c_tier_label: "2. Renovation Tier",
+                c_tier_cosmetic: "Cosmetic",
+                c_tier_capital: "Standard",
+                c_tier_design: "Designer",
+                c_area_label: "3. Total Area",
+                c_total_label: "Estimated Labor Cost",
+                c_note: "* Excl. materials & MOMS (selvstændig)",
+                c_btn_book: "Book Consultation",
+                price_subtitle: "Official Rates",
+                price_title: "Price List 2026",
+                price_desc: "Transparent labor pricing. All rates are quoted excluding materials and without MOMS.",
+                pr_cat1: "Demolition & Prep",
+                pr_1_1: "Wallpaper / paint removal",
+                pr_1_2: "Partition demolition",
+                pr_1_3: "Flooring removal",
+                pr_1_4: "Deep priming",
+                pr_cat2: "Walls & Ceilings",
+                pr_2_1: "Plastering by laser guide",
+                pr_2_2: "Skimming with fiberglass mesh",
+                pr_2_3: "Painting (2 coats)",
+                pr_2_4: "Wallpaper hanging",
+                pr_cat3: "Tiling & Flooring",
+                pr_3_1: "Standard tile installation",
+                pr_3_2: "Large-format tiles (60x60+)",
+                pr_3_3: "Bathroom waterproofing",
+                pr_3_4: "Baseboards installation",
+                hm_subtitle: "Rapid Assistance",
+                hm_title: "Handyman Hourly Service",
+                hm_desc: "Need furniture assembly, curtain rod installation, TV mounting, or minor repairs? Professional master ready for prompt dispatch.",
+                hm_rate_label: "Hourly Rate",
+                hm_note: "* Minimum 2 hours order. Excl. MOMS.",
+                hm_btn: "Book Handyman",
+                hm_list_title: "Popular Tasks:",
+                hm_t1: "Shelves, mirrors & picture hanging",
+                hm_t2: "Cabinet and custom furniture assembly",
+                hm_t3: "Minor plumbing and fixture adjustments",
+                hm_t4: "Door handles, locks, & threshold fitting",
+                hm_t5: "Bathroom silicone sealing and grouting",
+                cnt_subtitle: "Get in Touch",
+                cnt_title: "Let's Discuss Your Project",
+                cnt_desc: "Reach out directly by phone or submit your project details. All requests route straight to our team.",
+                cnt_phone_lbl: "Phone / WhatsApp",
+                cnt_email_lbl: "Email",
+                cnt_addr_lbl: "Address",
+                form_title: "Send Inquiry",
+                form_name: "Your Name",
+                form_phone: "Phone Number",
+                form_email: "Email Address",
+                form_msg: "Project Details",
+                form_btn: "Send Message",
+                ftr_sub: "Sole Proprietorship (uden moms). Copenhagen, Denmark."
+            },
+            da: {
+                sub_cph: "København",
+                nav_services: "Ydelser",
+                nav_calc: "Beregner",
+                nav_pricing: "Priser 2026",
+                nav_handyman: "Håndværker",
+                nav_contacts: "Kontakt",
+                btn_calc: "Få et overslag",
+                hero_badge: "Eksklusiv indvendig renovering i København",
+                hero_title: "Ukompromisløs kvalitet i hver <span>eneste detalje</span>",
+                hero_desc: "Professionel totalistandsættelse, malerarbejde og flisearbejde til lejligheder, huse og kontorer efter høje standarder.",
+                hero_btn_calc: "Beregn pris",
+                hero_btn_prices: "Se priser 2026",
+                srv_subtitle: "Udførelsesstandarder",
+                srv_title: "Præcision & Æstetik",
+                srv_desc: "Omhyggelige overfladebehandlinger udført med fokus på geometrisk perfektion og renlighed.",
+                p1_tag: "Basis Pakke",
+                p1_title: "Kosmetisk Renovering",
+                p1_desc: "Ideel til hurtig opdatering af boligen, vægge og overflader.",
+                p1_l1: "Fjernelse af gammelt tapet og maling",
+                p1_l2: "Delvis spartling og forberedelse",
+                p1_l3: "Maling af vægge og lofter (2 lag)",
+                p1_l4: "Montering af fodlister",
+                p2_tag: "Mest Populære",
+                p2_title: "Hovedrenovering",
+                p2_desc: "Dybdegående modernisering med total opretning, gips og fliser.",
+                p2_l1: "Fuld nedrivning og affaldshåndtering",
+                p2_l2: "Pudsning efter lasermåling",
+                p2_l3: "Gipskonstruktioner og skillevægge",
+                p2_l4: "Flisearbejde i bad og køkken",
+                p2_l5: "Fejlfri slutmalerbehandling",
+                p3_tag: "Eksklusiv Pakke",
+                p3_title: "Designerenovering",
+                p3_desc: "Specialarkitektur, storformat fliser og eksklusive teknikker.",
+                p3_l1: "Komplekse designprojekter",
+                p3_l2: "Storformat fliser (60x60+)",
+                p3_l3: "Dekorativ puds og stuk",
+                p3_l4: "Skjulte gardinskinner og LED-belysning",
+                calc_subtitle: "Interaktivt Værktøj",
+                calc_title: "Prisberegner for Renovering",
+                calc_desc: "Beregn overslagspris på arbejdsløn (ekskl. materialer, uden moms / selvstændig).",
+                c_type_label: "1. Ejendomstype",
+                c_type_apt: "Lejlighed",
+                c_type_house: "Hus",
+                c_type_office: "Kontor",
+                c_tier_label: "2. Renoveringsniveau",
+                c_tier_cosmetic: "Kosmetisk",
+                c_tier_capital: "Standard",
+                c_tier_design: "Designer",
+                c_area_label: "3. Areal",
+                c_total_label: "Estimeret Arbejdsløn",
+                c_note: "* Ekskl. materialer & moms (selvstændig)",
+                c_btn_book: "Book Konsultation",
+                price_subtitle: "Officielle Satser",
+                price_title: "Prisliste 2026",
+                price_desc: "Gennemsigtige priser på arbejdsløn. Alle beløb er ekskl. materialer og uden moms.",
+                pr_cat1: "Nedrivning & Forberedelse",
+                pr_1_1: "Tapet- / malingsfjernelse",
+                pr_1_2: "Nedrivning af vægge",
+                pr_1_3: "Fjernelse af gulvbelægning",
+                pr_1_4: "Dybdegående grunder",
+                pr_cat2: "Vægge & Lofter",
+                pr_2_1: "Pudsning på mur / væg",
+                pr_2_2: "Spartling med glasvæv",
+                pr_2_3: "Maling (2 lag)",
+                pr_2_4: "Opsætning af tapet",
+                pr_cat3: "Fliser & Gulve",
+                pr_3_1: "Standard flisearbejde",
+                pr_3_2: "Storformat fliser (60x60+)",
+                pr_3_3: "Vådrumssikring",
+                pr_3_4: "Montering af fodlister",
+                hm_subtitle: "Hurtig Service",
+                hm_title: "Håndværker i Time",
+                hm_desc: "Skal du have samlet møbler, opsat gardinstænger, ophængt tv eller lavet mindre reparationer? Professionel hjælp rykker ud.",
+                hm_rate_label: "Timesats",
+                hm_note: "* Minimum 2 timer. Ekskl. moms.",
+                hm_btn: "Book Håndværker",
+                hm_list_title: "Populære Opgaver:",
+                hm_t1: "Ophængning af hylder, spejle og billeder",
+                hm_t2: "Samling af skabe og møbler",
+                hm_t3: "Mindre VVS- og el-tilpasninger",
+                hm_t4: "Montering af dørgreb, låse og dørtrin",
+                hm_t5: "Fugning og udskiftning af silikone",
+                cnt_subtitle: "Kontakt Os",
+                cnt_title: "Lad os drøfte dit projekt",
+                cnt_desc: "Kontakt os direkte via telefon eller send en forespørgsel. Alle henvendelser sendes direkte til vores team.",
+                cnt_phone_lbl: "Telefon / WhatsApp",
+                cnt_email_lbl: "E-mail",
+                cnt_addr_lbl: "Adresse",
+                form_title: "Send Forespørgsel",
+                form_name: "Dit Navn",
+                form_phone: "Telefonnummer",
+                form_email: "E-mailadresse",
+                form_msg: "Projektdetaljer",
+                form_btn: "Send Besked",
+                ftr_sub: "Selvstændig erhvervsdrivende (uden moms). København, Danmark."
+            }
+        };
+
+        let currentLang = 'en';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+            updateCalculator();
+        }
+
+        let selectedType = "Apartment";
+        let tierRate = 450;
+
+        function selectCalcOption(element, category, val) {
+            const parent = element.parentElement;
+            parent.querySelectorAll('.calc-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            
+            if(category === 'tier') {
+                tierRate = val;
+            } else {
+                selectedType = element.querySelector('span').textContent;
+            }
+            updateCalculator();
+        }
+
+        function updateCalculator() {
+            const area = parseInt(document.getElementById('area-range').value);
+            document.getElementById('area-display').textContent = area + ' m²';
+            const total = area * tierRate;
+            document.getElementById('total-price').innerHTML = total.toLocaleString('da-DK') + ' <span>DKK</span>';
+
+            const tierName = tierRate === 450 ? (currentLang === 'da' ? 'Kosmetisk' : 'Cosmetic') : (tierRate === 850 ? (currentLang === 'da' ? 'Standard' : 'Standard') : (currentLang === 'da' ? 'Designer' : 'Designer'));
+            const summaryText = `Property Type: ${selectedType}, Tier: ${tierName}, Area: ${area} m², Estimated Price: ${total.toLocaleString('da-DK')} DKK (Excl. MOMS)`;
+            document.getElementById('calc-hidden-details').value = summaryText;
+        }
+
+        updateCalculator();
+    </script>
+</body>
+</html>
