@@ -645,7 +645,7 @@
         <div class="nav-container">
             <a href="#" class="logo">
                 <span class="logo-main">Luxe Renovation</span>
-                <span class="logo-sub" data-i18n="sub_cph">København</span>
+                <span class="logo-sub" data-i18n="sub_cph">København &bull; CVR: 46769074</span>
             </a>
 
             <ul class="nav-links">
@@ -734,14 +734,14 @@
         <div class="section-header">
             <span data-i18n="calc_subtitle">Interactive Tool</span>
             <h2 data-i18n="calc_title">Project Cost Calculator</h2>
-            <p data-i18n="calc_desc">Estimate labor costs for your property (excluding materials, excl. MOMS / sole proprietorship).</p>
+            <p data-i18n="calc_desc">Estimate labor costs for your property (excluding materials, including 25% MOMS / tax included).</p>
         </div>
 
         <div class="calculator-wrapper">
             <!-- Web3Forms Calculator Form Container -->
             <form action="https://api.web3forms.com/submit" method="POST" id="calc-submit-form">
                 <input type="hidden" name="access_key" value="b1982545-3109-4020-b6d2-6df99a2c5bdc">
-                <input type="hidden" name="subject" value="New Estimate Request from Luxe Renovation Calculator">
+                <input type="hidden" name="subject" value="New Estimate Request from Luxe Renovation Calculator (Inkl. Moms)">
                 <input type="hidden" name="from_name" value="Luxe Renovation Website">
                 <input type="hidden" id="calc-hidden-details" name="calculation_summary" value="">
 
@@ -804,9 +804,9 @@
 
                 <div class="calc-footer" style="margin-top: 0;">
                     <div>
-                        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); display: block; margin-bottom: 0.3rem;" data-i18n="c_total_label">Estimated Labor Cost</span>
-                        <div class="calc-total" id="total-price">33,750 <span>DKK</span></div>
-                        <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 0.3rem;" data-i18n="c_note">* Excl. materials & MOMS (selvstændig)</span>
+                        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: var(--text-muted); display: block; margin-bottom: 0.3rem;" data-i18n="c_total_label">Estimated Labor Cost (Inkl. Moms)</span>
+                        <div class="calc-total" id="total-price">42,188 <span>DKK</span></div>
+                        <span style="font-size: 11px; color: var(--gold); display: block; margin-top: 0.3rem; font-weight: 600;" data-i18n="c_note">* Excl. materials | Inkl. 25% MOMS (Tax included)</span>
                     </div>
                     <button type="submit" class="btn-gold" data-i18n="c_btn_book">Book Consultation</button>
                 </div>
@@ -819,7 +819,7 @@
         <div class="section-header">
             <span data-i18n="price_subtitle">Official Rates</span>
             <h2 data-i18n="price_title">Price List 2026</h2>
-            <p data-i18n="price_desc">Transparent labor pricing. All rates are quoted excluding materials and without MOMS.</p>
+            <p data-i18n="price_desc">Transparent labor pricing. All rates include 25% MOMS (tax included), excluding materials.</p>
         </div>
 
         <div class="pricing-grid">
@@ -827,19 +827,19 @@
                 <h3 data-i18n="pr_cat1">Demolition & Prep</h3>
                 <div class="price-item">
                     <span data-i18n="pr_1_1">Wallpaper / paint removal</span>
-                    <span>45 DKK / m²</span>
+                    <span>56 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_1_2">Partition demolition</span>
-                    <span>120 DKK / m²</span>
+                    <span>150 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_1_3">Flooring removal</span>
-                    <span>55 DKK / m²</span>
+                    <span>69 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_1_4">Deep priming</span>
-                    <span>25 DKK / m²</span>
+                    <span>31 DKK / m²</span>
                 </div>
             </div>
 
@@ -847,19 +847,19 @@
                 <h3 data-i18n="pr_cat2">Walls & Ceilings</h3>
                 <div class="price-item">
                     <span data-i18n="pr_2_1">Plastering by laser guide</span>
-                    <span>160 DKK / m²</span>
+                    <span>200 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_2_2">Skimming with fiberglass mesh</span>
-                    <span>140 DKK / m²</span>
+                    <span>175 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_2_3">Painting (2 coats)</span>
-                    <span>65 DKK / m²</span>
+                    <span>81 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_2_4">Wallpaper hanging</span>
-                    <span>90 DKK / m²</span>
+                    <span>113 DKK / m²</span>
                 </div>
             </div>
 
@@ -867,19 +867,19 @@
                 <h3 data-i18n="pr_cat3">Tiling & Flooring</h3>
                 <div class="price-item">
                     <span data-i18n="pr_3_1">Standard tile installation</span>
-                    <span>350 DKK / m²</span>
+                    <span>438 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_3_2">Large-format tiles (60x60+)</span>
-                    <span>450 DKK / m²</span>
+                    <span>563 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_3_3">Bathroom waterproofing</span>
-                    <span>120 DKK / m²</span>
+                    <span>150 DKK / m²</span>
                 </div>
                 <div class="price-item">
                     <span data-i18n="pr_3_4">Baseboards installation</span>
-                    <span>65 DKK / m</span>
+                    <span>81 DKK / m</span>
                 </div>
             </div>
         </div>
@@ -894,8 +894,8 @@
                 <p style="color: var(--text-muted); font-weight: 300; margin-bottom: 2rem;" data-i18n="hm_desc">Need furniture assembly, curtain rod installation, TV mounting, or minor repairs? Professional master ready for prompt dispatch.</p>
                 <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); padding: 2.5rem; margin-bottom: 2rem;">
                     <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted); display: block;" data-i18n="hm_rate_label">Hourly Rate</span>
-                    <div style="font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--gold); font-weight: 700; margin: 0.3rem 0;">450 <span style="font-size: 1rem; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif;">DKK / hour</span></div>
-                    <span style="font-size: 11px; color: var(--text-muted);" data-i18n="hm_note">* Minimum 2 hours order. Excl. MOMS.</span>
+                    <div style="font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--gold); font-weight: 700; margin: 0.3rem 0;">563 <span style="font-size: 1rem; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif;">DKK / hour</span></div>
+                    <span style="font-size: 11px; color: var(--gold); font-weight: 600;" data-i18n="hm_note">* Minimum 2 hours order. Inkl. 25% MOMS (tax included).</span>
                 </div>
                 <a href="#contacts" class="btn-gold" data-i18n="hm_btn">Book Handyman</a>
             </div>
@@ -981,7 +981,7 @@
         <div class="footer-container">
             <div>
                 <span class="logo-main" style="font-size: 1.3rem;">Luxe Renovation</span>
-                <p class="footer-text" data-i18n="ftr_sub">Sole Proprietorship (uden moms). Copenhagen, Denmark.</p>
+                <p class="footer-text" data-i18n="ftr_sub">CVR: 46769074 (Inkl. 25% MOMS). Copenhagen, Denmark.</p>
             </div>
             <div class="footer-text" style="text-align: right;">
                 <p>&copy; 2026 Luxe Renovation. All rights reserved.</p>
@@ -994,7 +994,7 @@
     <script>
         const translations = {
             en: {
-                sub_cph: "Copenhagen",
+                sub_cph: "København &bull; CVR: 46769074",
                 nav_services: "Services",
                 nav_calc: "Calculator",
                 nav_pricing: "Prices 2026",
@@ -1033,7 +1033,7 @@
                 p3_l4: "Hidden curtain tracks & LED integration",
                 calc_subtitle: "Interactive Tool",
                 calc_title: "Project Cost Calculator",
-                calc_desc: "Estimate labor costs for your property (excluding materials, excl. MOMS / sole proprietorship).",
+                calc_desc: "Estimate labor costs for your property (excluding materials, including 25% MOMS / tax included).",
                 c_type_label: "1. Property Type",
                 c_type_apt: "Apartment",
                 c_type_house: "House",
@@ -1043,12 +1043,12 @@
                 c_tier_capital: "Standard",
                 c_tier_design: "Designer",
                 c_area_label: "3. Total Area",
-                c_total_label: "Estimated Labor Cost",
-                c_note: "* Excl. materials & MOMS (selvstændig)",
+                c_total_label: "Estimated Labor Cost (Inkl. Moms)",
+                c_note: "* Excl. materials | Inkl. 25% MOMS (Tax included)",
                 c_btn_book: "Book Consultation",
                 price_subtitle: "Official Rates",
                 price_title: "Price List 2026",
-                price_desc: "Transparent labor pricing. All rates are quoted excluding materials and without MOMS.",
+                price_desc: "Transparent labor pricing. All rates include 25% MOMS (tax included), excluding materials.",
                 pr_cat1: "Demolition & Prep",
                 pr_1_1: "Wallpaper / paint removal",
                 pr_1_2: "Partition demolition",
@@ -1068,7 +1068,7 @@
                 hm_title: "Handyman Hourly Service",
                 hm_desc: "Need furniture assembly, curtain rod installation, TV mounting, or minor repairs? Professional master ready for prompt dispatch.",
                 hm_rate_label: "Hourly Rate",
-                hm_note: "* Minimum 2 hours order. Excl. MOMS.",
+                hm_note: "* Minimum 2 hours order. Inkl. 25% MOMS (tax included).",
                 hm_btn: "Book Handyman",
                 hm_list_title: "Popular Tasks:",
                 hm_t1: "Shelves, mirrors & picture hanging",
@@ -1088,10 +1088,10 @@
                 form_email: "Email Address",
                 form_msg: "Project Details",
                 form_btn: "Send Message",
-                ftr_sub: "Sole Proprietorship (uden moms). Copenhagen, Denmark."
+                ftr_sub: "CVR: 46769074 (Inkl. 25% MOMS). Copenhagen, Denmark."
             },
             da: {
-                sub_cph: "København",
+                sub_cph: "København &bull; CVR: 46769074",
                 nav_services: "Ydelser",
                 nav_calc: "Beregner",
                 nav_pricing: "Priser 2026",
@@ -1130,7 +1130,7 @@
                 p3_l4: "Skjulte gardinskinner og LED-belysning",
                 calc_subtitle: "Interaktivt Værktøj",
                 calc_title: "Prisberegner for Renovering",
-                calc_desc: "Beregn overslagspris på arbejdsløn (ekskl. materialer, uden moms / selvstændig).",
+                calc_desc: "Beregn overslagspris på arbejdsløn (ekskl. materialer, inkl. 25% moms / med skat).",
                 c_type_label: "1. Ejendomstype",
                 c_type_apt: "Lejlighed",
                 c_type_house: "Hus",
@@ -1140,12 +1140,12 @@
                 c_tier_capital: "Standard",
                 c_tier_design: "Designer",
                 c_area_label: "3. Areal",
-                c_total_label: "Estimeret Arbejdsløn",
-                c_note: "* Ekskl. materialer & moms (selvstændig)",
+                c_total_label: "Estimeret Arbejdsløn (Inkl. Moms)",
+                c_note: "* Ekskl. materialer | Inkl. 25% moms (Med skat)",
                 c_btn_book: "Book Konsultation",
                 price_subtitle: "Officielle Satser",
                 price_title: "Prisliste 2026",
-                price_desc: "Gennemsigtige priser på arbejdsløn. Alle beløb er ekskl. materialer og uden moms.",
+                price_desc: "Gennemsigtige priser på arbejdsløn. Alle beløb inkluderer 25% moms, ekskl. materialer.",
                 pr_cat1: "Nedrivning & Forberedelse",
                 pr_1_1: "Tapet- / malingsfjernelse",
                 pr_1_2: "Nedrivning af vægge",
@@ -1165,7 +1165,7 @@
                 hm_title: "Håndværker i Time",
                 hm_desc: "Skal du have samlet møbler, opsat gardinstænger, ophængt tv eller lavet mindre reparationer? Professionel hjælp rykker ud.",
                 hm_rate_label: "Timesats",
-                hm_note: "* Minimum 2 timer. Ekskl. moms.",
+                hm_note: "* Minimum 2 timer. Inkl. 25% moms.",
                 hm_btn: "Book Håndværker",
                 hm_list_title: "Populære Opgaver:",
                 hm_t1: "Ophængning af hylder, spejle og billeder",
@@ -1185,7 +1185,7 @@
                 form_email: "E-mailadresse",
                 form_msg: "Projektdetaljer",
                 form_btn: "Send Besked",
-                ftr_sub: "Selvstændig erhvervsdrivende (uden moms). København, Danmark."
+                ftr_sub: "CVR: 46769074 (Inkl. 25% MOMS). København, Danmark."
             }
         };
 
@@ -1224,11 +1224,15 @@
         function updateCalculator() {
             const area = parseInt(document.getElementById('area-range').value);
             document.getElementById('area-display').textContent = area + ' m²';
-            const total = area * tierRate;
-            document.getElementById('total-price').innerHTML = total.toLocaleString('da-DK') + ' <span>DKK</span>';
+            
+            // Автоматический расчет с учетом 25% НДС (moms)
+            const baseTotal = area * tierRate;
+            const totalWithMoms = baseTotal * 1.25;
+            
+            document.getElementById('total-price').innerHTML = Math.round(totalWithMoms).toLocaleString('da-DK') + ' <span>DKK</span>';
 
             const tierName = tierRate === 450 ? (currentLang === 'da' ? 'Kosmetisk' : 'Cosmetic') : (tierRate === 850 ? (currentLang === 'da' ? 'Standard' : 'Standard') : (currentLang === 'da' ? 'Designer' : 'Designer'));
-            const summaryText = `Property Type: ${selectedType}, Tier: ${tierName}, Area: ${area} m², Estimated Price: ${total.toLocaleString('da-DK')} DKK (Excl. MOMS)`;
+            const summaryText = `Property Type: ${selectedType}, Tier: ${tierName}, Area: ${area} m², Estimated Price: ${Math.round(totalWithMoms).toLocaleString('da-DK')} DKK (Inkl. 25% MOMS)`;
             document.getElementById('calc-hidden-details').value = summaryText;
         }
 
