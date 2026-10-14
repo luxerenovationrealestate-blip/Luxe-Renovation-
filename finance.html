@@ -56,4 +56,278 @@ th { color: var(--mu); font-weight: 500; }
 <div id="auth-modal">
   <div class="auth-box">
     <h2>Luxe Finance</h2>
-    <p style="color:var(--mu); font-size:14px; margin:0;">
+    <p style="color:var(--mu); font-size:14px; margin:0;">Введите PIN-код для доступа</p>
+    <input type="password" id="pin-input" placeholder="****" maxlength="8">
+    <button id="pin-btn">Войти</button>
+    <p id="pin-err" style="color:var(--red); font-size:13px; display:none; margin-top:10px;">Неверный PIN-код</p>
+  </div>
+</div>
+
+<!-- Main Finance Dashboard -->
+<div class="container" id="app" style="display:none;">
+  <header>
+    <div>
+      <h1>Финансовая аналитика</h1>
+      <small style="color:var(--mu)">Luxe Renovation Real Estate</small>
+    </div>
+    <input type="month" id="month-filter" class="month-select">
+  </header>
+
+  <!-- Summary Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <small>Общий доход</small>
+      <div class="amount" id="total-income" style="color:var(--green)">0 DKK</div>
+    </div>
+    <div class="stat-card">
+      <small>Общий расход</small>
+      <div class="amount" id="total-expense" style="color:var(--red)">0 DKK</div>
+    </div>
+    <div class="stat-card profit" id="profit-card">
+      <small>Чистая прибыль</small>
+      <div class="amount" id="net-profit">0 DKK</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Expense Form -->
+    <div>
+      <div class="card">
+        <h3>Внести расход / Чек</h3>
+        <form id="expense-form">
+          <input type="text" id="ex-title" placeholder="Описание (например, Краска Flügger)" required>
+          <input type="number" id="ex-amount" placeholder="Сумма (DKK)" required min="1">
+          <select id="ex-cat" required>
+            <option value="">Выберите категорию...</option>
+            <option value="Материалы">Материалы</option>
+            <option value="Инструмент">Инструмент / Аренда</option>
+            <option value="Транспорт">Топливо / Транспорт</option>
+            <option value="Субподряд">Субподрядчики</option>
+            <option value="Прочее">Прочее</option>
+          </select>
+          <input type="date" id="ex-date" required>
+          <label style="font-size:13px; color:var(--mu);">Фото чека (необязательно):</label>
+          <input type="file" id="ex-receipt" accept="image/*">
+          <button type="submit" class="btn btn-gold">Сохранить расход</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>Внести доход вручную</h3>
+        <form id="income-form">
+          <input type="text" id="inc-title" placeholder="Описание (например, Аванс за объект)" required>
+          <input type="number" id="inc-amount" placeholder="Сумма (DKK)" required min="1">
+          <input type="date" id="inc-date" required>
+          <button type="submit" class="btn">Добавить доход</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- History Tables -->
+    <div>
+      <div class="card">
+        <h3>История расходов</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Категория / Описание</th>
+                <th>Чек</th>
+                <th>Сумма</th>
+              </tr>
+            </thead>
+            <tbody id="expenses-list"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Доходы за месяц</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Источник / Описание</th>
+                <th>Сумма</th>
+              </tr>
+            </thead>
+            <tbody id="income-list"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import {FIREBASE_CONFIG} from "./firebase-config.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getFirestore, collection, addDoc, onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const PIN = "2003";
+
+const app = initializeApp(FIREBASE_CONFIG);
+const db = getFirestore(app);
+
+// Auth check
+document.getElementById('pin-btn').onclick = () => {
+  const input = document.getElementById('pin-input').value;
+  if(input === PIN) {
+    document.getElementById('auth-modal').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    document.getElementById('pin-err').style.display = 'block';
+  }
+};
+
+let allExpenses = [], allIncomes = [], crmClients = [];
+
+function initApp() {
+  const today = new Date();
+  document.getElementById('month-filter').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('ex-date').valueAsDate = today;
+  document.getElementById('inc-date').valueAsDate = today;
+
+  document.getElementById('month-filter').onchange = renderData;
+
+  // Sync Expenses (прямое чтение документов)
+  onSnapshot(collection(db, "expenses"), (snap) => {
+    allExpenses = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        amount: Number(data.amount || 0),
+        title: String(data.title || 'Расход'),
+        cat: String(data.cat || 'Прочее'),
+        date: String(data.date || new Date().toISOString().substring(0, 10)),
+        receipt: String(data.receipt || '')
+      };
+    });
+    renderData();
+  });
+
+  // Sync Manual Incomes
+  onSnapshot(collection(db, "incomes"), (snap) => {
+    allIncomes = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        amount: Number(data.amount || 0),
+        title: String(data.title || 'Доход'),
+        date: String(data.date || '').substring(0, 10)
+      };
+    });
+    renderData();
+  });
+
+  // Sync CRM Completed Deals
+  onSnapshot(collection(db, "clients"), (snap) => {
+    crmClients = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    renderData();
+  });
+}
+
+function renderData() {
+  const selectedMonth = document.getElementById('month-filter').value;
+  
+  const expenses = allExpenses.filter(e => e.date && e.date.startsWith(selectedMonth));
+  const expTotal = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  const incomesManual = allIncomes.filter(i => i.date && i.date.startsWith(selectedMonth));
+  
+  const crmIncomes = crmClients.filter(c => {
+    if(!c.created) return false;
+    const d = new Date(c.created).toISOString().substring(0,7);
+    return d === selectedMonth && (c.status === "Завершен" || c.status === "Оплачен");
+  }).map(c => ({
+    date: new Date(c.created).toISOString().substring(0,10),
+    title: `Заявка CRM: ${c.name || 'Клиент'} (${c.service || 'Услуга'})`,
+    amount: c.amount || 0
+  }));
+
+  const combinedIncomes = [...incomesManual, ...crmIncomes];
+  const incTotal = combinedIncomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+
+  const net = incTotal - expTotal;
+
+  document.getElementById('total-income').textContent = `${incTotal.toLocaleString()} DKK`;
+  document.getElementById('total-expense').textContent = `${expTotal.toLocaleString()} DKK`;
+  
+  const netEl = document.getElementById('net-profit');
+  netEl.textContent = `${net.toLocaleString()} DKK`;
+  const pCard = document.getElementById('profit-card');
+  if(net >= 0) {
+    pCard.className = "stat-card profit";
+    netEl.style.color = "var(--green)";
+  } else {
+    pCard.className = "stat-card loss";
+    netEl.style.color = "var(--red)";
+  }
+
+  const expTable = document.getElementById('expenses-list');
+  expTable.innerHTML = expenses.map(e => `
+    <tr>
+      <td>${e.date}</td>
+      <td><b>${e.title}</b><br><span class="badge">${e.cat}</span></td>
+      <td>${e.receipt ? `<a href="${e.receipt}" target="_blank"><img src="${e.receipt}" class="receipt-img"></a>` : '-'}</td>
+      <td style="color:var(--red); font-weight:600;">-${Number(e.amount).toLocaleString()} DKK</td>
+    </tr>
+  `).join('');
+
+  const incTable = document.getElementById('income-list');
+  incTable.innerHTML = combinedIncomes.map(i => `
+    <tr>
+      <td>${i.date}</td>
+      <td>${i.title}</td>
+      <td style="color:var(--green); font-weight:600;">+${Number(i.amount).toLocaleString()} DKK</td>
+    </tr>
+  `).join('');
+}
+
+// Submit Expense
+document.getElementById('expense-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const fileInput = document.getElementById('ex-receipt');
+  let receiptUrl = "";
+
+  if(fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    await new Promise(res => reader.onload = () => { receiptUrl = reader.result; res(); });
+  }
+
+  const rec = {
+    title: document.getElementById('ex-title').value,
+    amount: Number(document.getElementById('ex-amount').value),
+    cat: document.getElementById('ex-cat').value,
+    date: document.getElementById('ex-date').value,
+    receipt: receiptUrl,
+    created: Date.now()
+  };
+
+  await addDoc(collection(db, "expenses"), rec);
+  e.target.reset();
+  document.getElementById('ex-date').valueAsDate = new Date();
+};
+
+// Submit Manual Income
+document.getElementById('income-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const rec = {
+    title: document.getElementById('inc-title').value,
+    amount: Number(document.getElementById('inc-amount').value),
+    date: document.getElementById('inc-date').value,
+    created: Date.now()
+  };
+
+  await addDoc(collection(db, "incomes"), rec);
+  e.target.reset();
+  document.getElementById('inc-date').valueAsDate = new Date();
+};
+</script>
+</body>
+</html>
