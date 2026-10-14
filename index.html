@@ -105,7 +105,7 @@ import {getFirestore,collection,addDoc} from "https://www.gstatic.com/firebasejs
 let db=null;
 try{ db=getFirestore(initializeApp(FIREBASE_CONFIG)) }catch(e){}
 
-async function sendTelegramNotification(rec) {
+function sendTelegramNotification(rec) {
   const botToken = "8632387676:AAGkXPFDjgjFXJA9eeosCMj0G1hFFNl57o";
   const chatId = "8669097831";
   
@@ -118,13 +118,9 @@ async function sendTelegramNotification(rec) {
                `Смета: ${rec.amount ? rec.amount + ' DKK' : 'Не рассчитана'}\n` +
                `Заметка: ${rec.notes || 'Нет'}`;
 
-  const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
-
-  try {
-    await fetch(url, { mode: 'no-cors' });
-  } catch(e) {
-    console.error("Ошибка отправки Telegram:", e);
-  }
+  // Отправка через фоновую графическую метку (Image Beacon), гарантированно работающую без CORS-блокировок
+  const img = new Image();
+  img.src = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
 }
 
 $("#f").onsubmit=async e=>{
@@ -149,14 +145,11 @@ $("#f").onsubmit=async e=>{
   try{
     if(!db || FIREBASE_CONFIG.apiKey.startsWith("ВСТАВЬ")) throw new Error("No DB config");
     
-    // Сохраняем в обе коллекции CRM для полной синхронизации
-    await Promise.all([
-      addDoc(collection(db, "clients"), rec),
-      addDoc(collection(db, "leads"), rec)
-    ]);
+    // Единое сохранение в базу CRM (без дубликатов)
+    await addDoc(collection(db, "clients"), rec);
 
-    // Отправляем мгновенное уведомление в Telegram с обходом CORS
-    await sendTelegramNotification(rec);
+    // Мгновенная отправка в Telegram
+    sendTelegramNotification(rec);
 
     e.target.reset();
     $("#fnote").textContent=da?"Tak! Vi vender tilbage hurtigst muligt.":"Thank you! We will get back to you shortly.";
