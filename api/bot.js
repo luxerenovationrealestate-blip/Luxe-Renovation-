@@ -1,14 +1,24 @@
-import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import fetch from 'node-fetch';
 
 let db = null;
 
 try {
-  if (!getApps().length) {
+  if (!getApps().length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    // Восстанавливаем переносы из строкового формата \n
+    privateKey = privateKey.replace(/\\n/g, '\n');
+
     initializeApp({
-      credential: applicationDefault(),
-      projectId: 'luxe-renovation-72e1a'
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey,
+      }),
     });
   }
   db = getFirestore();
@@ -74,8 +84,7 @@ export default async function handler(req, res) {
             });
             await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${Math.abs(amount)} DKK — ${description}`);
           } else {
-            // Если db все еще не создался, запишем хотя бы без падения, либо сообщим
-            await sendMessage(db ? 'ok' : `⚠️ База данных ожидает инициализации.`);
+            await sendMessage(chatId, `⚠️ Ошибка: объект базы данных не инициализирован.`);
           }
         } else {
           await sendMessage(chatId, `❌ Не удалось найти сумму. Укажите цифру (например: \`миксер 600\`).`);
