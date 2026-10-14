@@ -166,7 +166,7 @@ import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore, collection, addDoc, query, onSnapshot, orderBy} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const PIN = "2003"; // ВАШ ПИН-КОД ДЛЯ ВХОДА (можно изменить)
+const PIN = "2003";
 
 const app = initializeApp(FIREBASE_CONFIG);
 const db = getFirestore(app);
@@ -193,10 +193,26 @@ function initApp() {
 
   document.getElementById('month-filter').onchange = renderData;
 
-  // Sync Expenses
+  // Sync Expenses (сайт)
   onSnapshot(collection(db, "expenses"), (snap) => {
-    allExpenses = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    renderData();
+    const siteExpenses = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    mergeExpenses(siteExpenses, null);
+  });
+
+  // Sync Transactions (Telegram-бот)
+  onSnapshot(collection(db, "transactions"), (snap) => {
+    const botTransactions = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        id: d.id,
+        title: data.description || 'Расход из Telegram',
+        amount: data.amount || 0,
+        cat: 'Прочее',
+        date: data.date ? data.date.substring(0, 10) : new Date().toISOString().substring(0, 10),
+        receipt: ''
+      };
+    });
+    mergeExpenses(null, botTransactions);
   });
 
   // Sync Manual Incomes
@@ -212,17 +228,27 @@ function initApp() {
   });
 }
 
-function renderData() {
-  const selectedMonth = document.getElementById('month-filter').value; // YYYY-MM
+let rawSiteExpenses = [];
+let rawBotExpenses = [];
+function mergeExpenses(site, bot) {
+  if (site) rawSiteExpenses = site;
+  if (bot) rawBotExpenses = bot;
   
-  // Filter Expenses
+  const map = new Map();
+  [...rawSiteExpenses, ...rawBotExpenses].forEach(item => map.set(item.id, item));
+  allExpenses = Array.from(map.values());
+  
+  renderData();
+}
+
+function renderData() {
+  const selectedMonth = document.getElementById('month-filter').value;
+  
   const expenses = allExpenses.filter(e => e.date && e.date.startsWith(selectedMonth));
   const expTotal = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
-  // Filter Incomes (Manual + Completed CRM Clients)
   const incomesManual = allIncomes.filter(i => i.date && i.date.startsWith(selectedMonth));
   
-  // Auto income from CRM (status Completed/Paid)
   const crmIncomes = crmClients.filter(c => {
     if(!c.created) return false;
     const d = new Date(c.created).toISOString().substring(0,7);
@@ -238,7 +264,6 @@ function renderData() {
 
   const net = incTotal - expTotal;
 
-  // Render Stats
   document.getElementById('total-income').textContent = `${incTotal.toLocaleString()} DKK`;
   document.getElementById('total-expense').textContent = `${expTotal.toLocaleString()} DKK`;
   
@@ -253,7 +278,6 @@ function renderData() {
     netEl.style.color = "var(--red)";
   }
 
-  // Render Expense Table
   const expTable = document.getElementById('expenses-list');
   expTable.innerHTML = expenses.map(e => `
     <tr>
@@ -264,7 +288,6 @@ function renderData() {
     </tr>
   `).join('');
 
-  // Render Income Table
   const incTable = document.getElementById('income-list');
   incTable.innerHTML = combinedIncomes.map(i => `
     <tr>
