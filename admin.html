@@ -45,6 +45,7 @@ label{font-size:12px;color:var(--mu);display:block;margin-bottom:3px}.empty{text
 <div class="top"><div><h1>Клиентская база</h1><div class="sub">Luxe Renovation · видна только вам</div></div>
 <div>
   <a class="b o s" style="text-decoration:none;display:inline-block" href="index.html">← Сайт</a> 
+  <a class="b s" style="text-decoration:none;display:inline-block;background:var(--g);color:#f4ecd9;" href="finance.html">💰 Финансы</a> 
   <button class="b o s" id="imp">Импорт из письма</button> 
   <button class="b o s" id="exp">CSV</button> 
   <button class="b" id="add">+ Клиент</button>
@@ -250,7 +251,6 @@ onAuthStateChanged(auth, user => {
     if (user.email === ADMIN_EMAIL) {
       $("#auth-block").style.display = "none";
       if(unsubs.length === 0) {
-        // Подписка на коллекцию clients
         const u1 = onSnapshot(collection(db, "clients"), s => {
           clientsData = {};
           s.docs.forEach(d => {
@@ -261,7 +261,6 @@ onAuthStateChanged(auth, user => {
           $("#list").innerHTML = '<div class="empty">Ошибка доступа к базе (clients): ' + esc(e.message) + '</div>';
         });
 
-        // Подписка на коллекцию leads (заявки с формы сайта)
         const u2 = onSnapshot(collection(db, "leads"), s => {
           leadsData = {};
           s.docs.forEach(d => {
