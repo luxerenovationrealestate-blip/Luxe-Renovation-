@@ -49,15 +49,16 @@ export default async function handler(req, res) {
           const amount = parseFloat(amountStr);
           const description = cleanText.replace(numMatch[0], '').trim() || text;
 
-          // Отправка данных напрямую через Firestore REST API (без тяжелых ключей)
-          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/transactions`;
+          // Отправляем напрямую в коллекцию "expenses", которую читает сайт
+          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
           
           const firestoreBody = {
             fields: {
               amount: { doubleValue: Math.abs(amount) },
-              type: { stringValue: 'expense' },
-              description: { stringValue: description },
-              date: { stringValue: new Date().toISOString() },
+              title: { stringValue: description },
+              cat: { stringValue: 'Прочее' },
+              date: { stringValue: new Date().toISOString().substring(0, 10) },
+              created: { integerValue: Date.now().toString() },
               chatId: { stringValue: chatId.toString() }
             }
           };
@@ -73,8 +74,7 @@ export default async function handler(req, res) {
           } else {
             const errText = await dbResponse.text();
             console.error('Firestore REST error:', errText);
-            // Если база ругается на правила безопасности, хотя бы сообщим об этом
-            await sendMessage(chatId, `⚠️ Сумма найдена (${amount} DKK), но база отклонила запрос. Проверьте правила Firestore (Rules).`);
+            await sendMessage(chatId, `⚠️ Сумма найдена (${amount} DKK), но база отклонила запрос.`);
           }
         } else {
           await sendMessage(chatId, `❌ Не удалось найти сумму. Укажите цифру (например: \`миксер 600\`).`);
