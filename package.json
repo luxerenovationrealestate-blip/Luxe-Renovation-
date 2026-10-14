@@ -1,1 +1,9 @@
+{
+  "name": "luxe-telegram-accountant",
+  "version": "1.0.0",
+  "main": "api/bot.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}
 
