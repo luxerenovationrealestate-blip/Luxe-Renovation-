@@ -88,8 +88,34 @@ const opt=a=>a.map(x=>`<option>${x}</option>`).join("");
 $("#fv").innerHTML=opt(SV);$("#ft").innerHTML=opt(ST);$("#fo").innerHTML=opt(SO);
 $("#fs").innerHTML=`<option value="">Все статусы</option>`+opt(ST);
 
-let rows=[], editId=null, unsubscribe = null;
+let clientsData={}, leadsData={}, rows=[], editId=null, unsubs = [];
 const fmt=n=>Math.round(n).toLocaleString("da-DK");
+
+function parseItem(d, id, defaultCol) {
+  return {
+    id: id,
+    col: d._col || defaultCol,
+    name: d.name || d.navn || "Без имени",
+    phone: d.phone || d.telefon || "",
+    email: d.email || "",
+    address: d.address || d.adresse || "",
+    service: d.service || d.type || "Другое",
+    amount: +d.amount || +d.price || 0,
+    status: d.status || "Новая заявка",
+    source: d.source || "Сайт",
+    next: d.next || "",
+    notes: d.notes || d.message || d.comment || "",
+    created: d.created || Date.now()
+  };
+}
+
+function updateRows() {
+  const allMap = {};
+  Object.keys(leadsData).forEach(k => { allMap[k] = leadsData[k]; });
+  Object.keys(clientsData).forEach(k => { allMap[k] = clientsData[k]; });
+  rows = Object.values(allMap).sort((a,b)=>(b.created||0)-(a.created||0));
+  draw();
+}
 
 function draw(){
   const q=$("#q").value.toLowerCase(),fs=$("#fs").value,today=new Date().toISOString().slice(0,10);
@@ -102,27 +128,27 @@ function draw(){
   
   $("#list").innerHTML=v.length?v.map(r=>`<div class="c"><div class="r"><div><h3>${esc(r.name)}</h3><div class="m">${r.phone?`<a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>`:""}${r.email?` · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:""}</div>${r.address?`<div class="m">📍 ${esc(r.address)}</div>`:""}<div class="m">${esc(r.service)} · ${esc(r.source)}</div></div><div class="amt">${r.amount?fmt(r.amount)+" kr":""}</div></div>
   ${r.next?`<div class="m ${r.next<today&&open.includes(r)?"late":""}">📅 Связаться: ${esc(r.next)}${r.next<today&&open.includes(r)?" · просрочено":""}</div>`:""}${r.notes?`<p>${esc(r.notes)}</p>`:""}
-  <div class="r" style="margin-top:12px"><select data-id="${r.id}" class="st-change">${ST.map(s=>`<option ${s==r.status?"selected":""}>${s}</option>`).join("")}</select><div><button class="b o s btn-edit" data-id="${r.id}">Изменить</button> <button class="b o s btn-del" data-id="${r.id}">Удалить</button></div></div></div>`).join(""):`<div class="empty">${rows.length?"Ничего не найдено":"Пока нет клиентов. Нажмите «+ Новый клиент»."}</div>`;
+  <div class="r" style="margin-top:12px"><select data-id="${r.id}" data-col="${r.col}" class="st-change">${ST.map(s=>`<option ${s==r.status?"selected":""}>${s}</option>`).join("")}</select><div><button class="b o s btn-edit" data-id="${r.id}">Изменить</button> <button class="b o s btn-del" data-id="${r.id}" data-col="${r.col}">Удалить</button></div></div></div>`).join(""):`<div class="empty">${rows.length?"Ничего не найдено":"Пока нет клиентов. Нажмите «+ Новый клиент»."}</div>`;
 
   document.querySelectorAll(".st-change").forEach(el=>{
-    el.onchange = e => setSt(e.target.dataset.id, e.target.value);
+    el.onchange = e => setSt(e.target.dataset.id, e.target.dataset.col, e.target.value);
   });
   document.querySelectorAll(".btn-edit").forEach(el=>{
     el.onclick = e => edit(e.target.dataset.id);
   });
   document.querySelectorAll(".btn-del").forEach(el=>{
-    el.onclick = e => del(e.target, e.target.dataset.id);
+    el.onclick = e => del(e.target, e.target.dataset.id, e.target.dataset.col);
   });
 }
 
-async function setSt(id,s){
-  try{ await updateDoc(doc(db, "clients", id), {status:s}) }
+async function setSt(id, colName, s){
+  try{ await updateDoc(doc(db, colName || "clients", id), {status:s}) }
   catch(e){ alert("Не удалось сохранить: "+(e.message||e.code)) }
 }
 
-function del(b,id){
+function del(b, id, colName){
   if(b.dataset.s){
-    deleteDoc(doc(db, "clients", id)).catch(e=>alert(e.message));
+    deleteDoc(doc(db, colName || "clients", id)).catch(e=>alert(e.message));
     return;
   }
   b.dataset.s=1;b.textContent="Точно?";
@@ -144,6 +170,7 @@ $("#cx").onclick=()=>$("#ov").classList.remove("on");
 
 $("#fm").onsubmit=async e=>{
   e.preventDefault();
+  const targetCol = editId ? (rows.find(r=>r.id==editId)?.col || "clients") : "clients";
   const d={
     name:$("#fn").value.trim(),
     phone:$("#fp").value.trim(),
@@ -158,7 +185,7 @@ $("#fm").onsubmit=async e=>{
   };
   try{
     if(editId){
-      await updateDoc(doc(db, "clients", editId), d);
+      await updateDoc(doc(db, targetCol, editId), d);
     } else {
       d.created=Date.now();
       const newId = "c"+d.created.toString(36)+Math.random().toString(36).slice(2,6);
@@ -196,7 +223,6 @@ $("#exp").onclick=()=>{
   link.click();
 };
 
-// Проверка и авторизация через Firebase Auth
 $("#btn-login").onclick = async () => {
   const provider = new GoogleAuthProvider();
   $("#auth-err").style.display = "none";
@@ -212,17 +238,39 @@ $("#btn-logout").onclick = () => {
   signOut(auth);
 };
 
+function clearSubscriptions() {
+  unsubs.forEach(fn => fn());
+  unsubs = [];
+  clientsData = {};
+  leadsData = {};
+}
+
 onAuthStateChanged(auth, user => {
   if (user) {
     if (user.email === ADMIN_EMAIL) {
       $("#auth-block").style.display = "none";
-      if(!unsubscribe) {
-        unsubscribe = onSnapshot(collection(db, "clients"), s => {
-          rows = s.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=>(b.created||0)-(a.created||0));
-          draw();
+      if(unsubs.length === 0) {
+        // Подписка на коллекцию clients
+        const u1 = onSnapshot(collection(db, "clients"), s => {
+          clientsData = {};
+          s.docs.forEach(d => {
+            clientsData[d.id] = parseItem(d.data(), d.id, "clients");
+          });
+          updateRows();
         }, e => {
-          $("#list").innerHTML = '<div class="empty">Ошибка доступа к базе: ' + esc(e.message) + '</div>';
+          $("#list").innerHTML = '<div class="empty">Ошибка доступа к базе (clients): ' + esc(e.message) + '</div>';
         });
+
+        // Подписка на коллекцию leads (заявки с формы сайта)
+        const u2 = onSnapshot(collection(db, "leads"), s => {
+          leadsData = {};
+          s.docs.forEach(d => {
+            leadsData[d.id] = parseItem(d.data(), d.id, "leads");
+          });
+          updateRows();
+        }, e => console.log("Leads info:", e));
+
+        unsubs = [u1, u2];
       }
     } else {
       signOut(auth);
@@ -231,7 +279,7 @@ onAuthStateChanged(auth, user => {
     }
   } else {
     $("#auth-block").style.display = "flex";
-    if(unsubscribe) { unsubscribe(); unsubscribe = null; }
+    clearSubscriptions();
     rows = [];
     draw();
   }
