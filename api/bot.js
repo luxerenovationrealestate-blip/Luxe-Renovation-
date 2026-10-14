@@ -1,51 +1,47 @@
 import fetch from 'node-fetch';
+import FormData from 'form-data';
 
 const PROJECT_ID = 'luxe-renovation-72e1a';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const OPENAI_API_KEY = process.env.OPEN_KEY || process.env.OPENAI_API_KEY;
 
 async function sendMessage(chatId, text) {
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
-  });
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
+    });
+  } catch (err) {
+    console.error('Telegram send error:', err);
+  }
 }
 
 async function transcribeAudio(fileUrl) {
   const audioRes = await fetch(fileUrl);
-  const audioBuffer = await audioRes.arrayBuffer();
+  const audioBuffer = await audioRes.buffer();
 
   const formData = new FormData();
-  formData.append('file', new Blob([audioBuffer], { type: 'audio/ogg' }), 'voice.ogg');
+  formData.append('file', audioBuffer, {
+    filename: 'voice.ogg',
+    contentType: 'audio/ogg',
+  });
   formData.append('model', 'whisper-1');
 
-  // Устанавливаем таймаут 10 секунд, чтобы бот не зависал навсегда
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      ...formData.getHeaders()
+    },
+    body: formData
+  });
 
-  try {
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: formData,
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error?.message || 'Ошибка OpenAI API');
-    }
-    return data.text || '';
-  } catch (err) {
-    if (err.name === 'AbortError') {
-      throw new Error('Превышено время ожидания OpenAI (таймаут)');
-    }
-    throw err;
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Ошибка OpenAI API');
   }
+  return data.text || '';
 }
 
 async function processExpenseText(chatId, text) {
@@ -77,9 +73,9 @@ async function processExpenseText(chatId, text) {
     });
 
     if (dbResponse.ok) {
-      await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${Math.abs(amount)} DKK — ${description}`);
+      await sendMessage(chatId, `✅ Успешно записано из голоса:\n💰 ${Math.abs(amount)} DKK — ${description}`);
     } else {
-      await sendMessage(chatId, `⚠️ Ошибка записи в базу.`);
+      await sendMessage(chatId, `⚠️ Ошибка записи в базу данных.`);
     }
   } else {
     await sendMessage(chatId, `❌ Распознано: «${text}». Но сумма не найдена. Укажите цифру (например: \`миксер 600\`).`);
@@ -87,61 +83,55 @@ async function processExpenseText(chatId, text) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(200).send('Bot is working perfectly!');
-  }
+  res.status(200).json({ ok: true });
 
   try {
     const body = req.body;
+    if (!body || !body.message) return;
 
-    if (body && body.message) {
-      const chatId = body.message.chat.id;
-      let text = '';
+    const chatId = body.message.chat.id;
+    let text = '';
 
-      if (body.message.voice || body.message.audio) {
-        if (!OPENAI_API_KEY) {
-          await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY в настройках Vercel.`);
-          return res.status(200).json({ ok: true });
-        }
+    if (body.message.voice || body.message.audio) {
+      if (!OPENAI_API_KEY) {
+        await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY в настройках Vercel.`);
+        return;
+      }
 
-        const fileId = body.message.voice ? body.message.voice.file_id : body.message.audio.file_id;
+      const fileId = body.message.voice ? body.message.voice.file_id : body.message.audio.file_id;
+      
+      const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+      const fileData = await fileRes.json();
+
+      if (fileData.ok && fileData.result && fileData.result.file_path) {
+        const filePath = fileData.result.file_path;
+        const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
         
-        const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
-        const fileData = await fileRes.json();
-
-        if (fileData.ok && fileData.result && fileData.result.file_path) {
-          const filePath = fileData.result.file_path;
-          const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
-          
-          await sendMessage(chatId, `🎤 Слушаю голосовое...`);
-          
-          try {
-            text = await transcribeAudio(fileUrl);
-          } catch (voiceErr) {
-            await sendMessage(chatId, `❌ Ошибка расшифровки голоса: ${voiceErr.message}\n\n(Проверьте баланс в OpenAI Billing).`);
-            return res.status(200).json({ ok: true });
-          }
-        } else {
-          await sendMessage(chatId, `❌ Не удалось получить аудиофайл.`);
-          return res.status(200).json({ ok: true });
+        await sendMessage(chatId, `🎤 Слушаю и расшифровываю голосовое...`);
+        
+        try {
+          text = await transcribeAudio(fileUrl);
+        } catch (voiceErr) {
+          await sendMessage(chatId, `❌ Ошибка OpenAI: ${voiceErr.message}`);
+          return;
         }
-      } else if (body.message.text) {
-        text = body.message.text.trim();
+      } else {
+        await sendMessage(chatId, `❌ Не удалось получить аудиофайл из Telegram.`);
+        return;
       }
-
-      if (text === '/start' || text.toLowerCase() === 'id') {
-        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст или голосовое.`);
-        return res.status(200).json({ ok: true });
-      }
-
-      if (text) {
-        await processExpenseText(chatId, text);
-      }
+    } else if (body.message.text) {
+      text = body.message.text.trim();
     }
 
-    return res.status(200).json({ ok: true });
+    if (text === '/start' || text.toLowerCase() === 'id') {
+      await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст или голосовое сообщение.`);
+      return;
+    }
+
+    if (text) {
+      await processExpenseText(chatId, text);
+    }
   } catch (e) {
-    console.error('Handler error:', e);
-    return res.status(200).json({ ok: true, error: e.message });
+    console.error('Critical handler error:', e);
   }
 }
