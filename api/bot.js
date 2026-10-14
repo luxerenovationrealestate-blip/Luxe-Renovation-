@@ -17,7 +17,7 @@ async function sendMessage(chatId, text) {
   }
 }
 
-// 1. Расшифровка голосовых через Whisper
+// 1. Расшифровка голоса через Whisper
 async function transcribeAudio(fileUrl) {
   const audioRes = await fetch(fileUrl);
   const audioBuffer = await audioRes.buffer();
@@ -37,7 +37,7 @@ async function transcribeAudio(fileUrl) {
   return data.text || '';
 }
 
-// 2. Распознавание чеков/скриншотов через GPT-4o-mini Vision
+// 2. Анализ изображения (чек = расход, скриншот перевода/оплаты от клиента = доход)
 async function analyzeImage(imageUrl) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -53,7 +53,7 @@ async function analyzeImage(imageUrl) {
           content: [
             {
               type: 'text',
-              text: 'Это чек или скриншот расхода. Проанализируй изображение, найди описание товара/услуги и итоговую сумму в кронах (DKK). Верни ответ строго в формате JSON без лишнего текста: {"title": "описание", "amount": число}'
+              text: 'Определи, что это за документ на изображении: чек на покупку/расход ИЛИ подтверждение поступления денег/дохода от клиента. Верни JSON: {"type": "expense" или "income", "title": "описание", "amount": число}'
             },
             {
               type: 'image_url',
@@ -70,25 +70,26 @@ async function analyzeImage(imageUrl) {
   if (!response.ok) throw new Error(data.error?.message || 'Ошибка Vision API');
 
   const content = data.choices[0].message.content.trim();
-  // Очищаем от возможных маркеров кода markdown
   const jsonClean = content.replace(/```json/g, '').replace(/```/g, '').trim();
   return JSON.parse(jsonClean);
 }
 
-// 3. Сохранение расхода в Firestore
-async function saveExpense(chatId, amount, title, receiptUrl = '') {
+// 3. Сохранение в нужную коллекцию Firestore (expenses или incomes)
+async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) {
-    await sendMessage(chatId, `❌ Неверная сумма (${amount}). Проверьте данные.`);
+    await sendMessage(chatId, `❌ Неверная сумма (${amount}).`);
     return;
   }
 
-  const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
+  // Определяем коллекцию: 'expenses' (расходы) или 'incomes' (доходы)
+  const collectionName = type === 'income' ? 'incomes' : 'expenses';
+  const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}`;
   
   const firestoreBody = {
     fields: {
       amount: { doubleValue: amount },
       title: { stringValue: title },
-      cat: { stringValue: 'Материалы' },
+      cat: { stringValue: type === 'income' ? 'Доход' : 'Материалы' },
       date: { stringValue: new Date().toISOString().substring(0, 10) },
       created: { stringValue: Date.now().toString() },
       chatId: { stringValue: chatId.toString() },
@@ -103,14 +104,30 @@ async function saveExpense(chatId, amount, title, receiptUrl = '') {
   });
 
   if (dbResponse.ok) {
-    await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${amount.toLocaleString()} DKK — ${title}`);
+    if (type === 'income') {
+      await sendMessage(chatId, `🟢 **Доход успешно зафиксирован:**\n💰 +${amount.toLocaleString()} DKK —${title}`);
+    } else {
+      await sendMessage(chatId, `🔴 **Расход успешно записан:**\n💸 -${amount.toLocaleString()} DKK —${title}`);
+    }
   } else {
     await sendMessage(chatId, `⚠️ Ошибка записи в базу данных.`);
   }
 }
 
-// 4. Обработка текстовых расходов
+// 4. Анализ текста (определяем плюс или минус по словам)
 async function processExpenseText(chatId, text) {
+  const lowerText = text.toLowerCase();
+  
+  // Ключевые слова для доходов
+  const isIncome = lowerText.includes('получил') || 
+                   lowerText.includes('пришло') || 
+                   lowerText.includes('заработал') || 
+                   lowerText.includes('доход') || 
+                   lowerText.includes('оплата от') || 
+                   lowerText.includes('аванс');
+
+  const type = isIncome ? 'income' : 'expense';
+
   const cleanText = text.replace(/(крон|кроны|кр|dkk|kr|\.)/gi, '').trim();
   const numMatch = cleanText.match(/\d{1,3}(?:\s\d{3})+|\d+/g);
 
@@ -118,9 +135,9 @@ async function processExpenseText(chatId, text) {
     const rawNumStr = numMatch[numMatch.length - 1];
     const amount = parseFloat(rawNumStr.replace(/\s/g, ''));
     const description = cleanText.replace(rawNumStr, '').trim() || text;
-    await saveExpense(chatId, amount, description);
+    await saveTransaction(chatId, type, amount, description);
   } else {
-    await sendMessage(chatId, `❌ Распознано: «${text}». Не найдена сумма. Укажите цифру (например: \`миксер 600\`).`);
+    await sendMessage(chatId, `❌ Распознано: «${text}». Не найдена сумма. Укажите цифру (например: \`получил 5000 аванс\` или \`миксер 600\`).`);
   }
 }
 
@@ -133,7 +150,7 @@ export default async function handler(req, res) {
 
     const chatId = body.message.chat.id;
 
-    // А. Обработка голосовых
+    // А. Голосовые сообщения
     if (body.message.voice || body.message.audio) {
       if (!OPENAI_API_KEY) {
         await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY.`);
@@ -146,40 +163,38 @@ export default async function handler(req, res) {
 
       if (fileData.ok && fileData.result?.file_path) {
         const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
-        await sendMessage(chatId, `🎤 Слушаю и расшифровываю голосовое...`);
+        await sendMessage(chatId, `🎤 Слушаю и анализирую...`);
         try {
           const text = await transcribeAudio(fileUrl);
           await processExpenseText(chatId, text);
         } catch (err) {
-          await sendMessage(chatId, `❌ Ошибка распознавания голоса: ${err.message}`);
+          await sendMessage(chatId, `❌ Ошибка распознавания: ${err.message}`);
         }
       }
       return res.status(200).json({ ok: true });
     }
 
-    // Б. Обработка фотографий / скриншотов чеков
+    // Б. Фотографии и чеки
     if (body.message.photo && body.message.photo.length > 0) {
       if (!OPENAI_API_KEY) {
         await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY.`);
         return res.status(200).json({ ok: true });
       }
 
-      // Берем фото самого высокого качества (последний элемент массива)
       const photo = body.message.photo[body.message.photo.length - 1];
       const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${photo.file_id}`);
       const fileData = await fileRes.json();
 
       if (fileData.ok && fileData.result?.file_path) {
-        const filePath = fileData.result.file_path;
-        const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
+        const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
         
-        await sendMessage(chatId, `📸 Анализирую чек / скриншот...`);
+        await sendMessage(chatId, `📸 Анализирую документ...`);
         try {
           const result = await analyzeImage(fileUrl);
           if (result && result.amount) {
-            await saveExpense(chatId, Number(result.amount), result.title || 'Чек с фото', fileUrl);
+            await saveTransaction(chatId, result.type || 'expense', Number(result.amount), result.title || 'Документ', fileUrl);
           } else {
-            await sendMessage(chatId, `❌ Не удалось найти сумму на изображении.`);
+            await sendMessage(chatId, `❌ Не удалось распознать сумму на изображении.`);
           }
         } catch (err) {
           await sendMessage(chatId, `❌ Ошибка анализа изображения: ${err.message}`);
@@ -188,11 +203,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // В. Обработка обычного текста
+    // В. Текстовые сообщения
     if (body.message.text) {
       const text = body.message.text.trim();
       if (text === '/start' || text.toLowerCase() === 'id') {
-        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст, голосовое или **фото/скриншот чека**.`);
+        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nПишите или говорите:\n• Для расходов: \`Миксер 500\`\n• Для доходов: \`Получил 15000 аванс\``);
         return res.status(200).json({ ok: true });
       }
       await processExpenseText(chatId, text);
