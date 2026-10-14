@@ -16,7 +16,8 @@ body { margin: 0; background: var(--bg); color: var(--tx); padding: 20px; }
 .auth-box { background: var(--card); padding: 32px; border-radius: 20px; text-align: center; max-width: 360px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
 .auth-box h2 { font-family: 'Cormorant Garamond', serif; color: var(--g); margin: 0 0 10px; font-size: 28px; }
 .auth-box input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; text-align: center; font-size: 18px; margin: 15px 0; }
-.auth-box button { width: 100%; background: var(--gold); color: #fff; border: 0; padding: 12px; border-radius: 10px; font-weight: 500; cursor: pointer; }
+.auth-box button { width: 100%; background: var(--g); color: #fff; border: 0; padding: 12px; border-radius: 10px; font-weight: 500; cursor: pointer; margin-top: 8px; }
+.btn-google { background: #4285F4 !important; }
 
 /* Header & Nav */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
@@ -56,9 +57,17 @@ th { color: var(--mu); font-weight: 500; }
 <div id="auth-modal">
   <div class="auth-box">
     <h2>Luxe Finance</h2>
-    <p style="color:var(--mu); font-size:14px; margin:0;">Введите PIN-код для доступа</p>
-    <input type="password" id="pin-input" placeholder="****" maxlength="8">
-    <button id="pin-btn">Войти</button>
+    <p style="color:var(--mu); font-size:14px; margin:0;" id="auth-status">Требуется вход владельца</p>
+    
+    <div id="google-login-section" style="margin-top:15px;">
+      <button id="google-btn" class="btn btn-google">Войти через Google</button>
+    </div>
+
+    <div id="pin-section" style="display:none; margin-top:10px;">
+      <input type="password" id="pin-input" placeholder="PIN-код" maxlength="8">
+      <button id="pin-btn">Открыть панель</button>
+    </div>
+
     <p id="pin-err" style="color:var(--red); font-size:13px; display:none; margin-top:10px;">Неверный PIN-код</p>
   </div>
 </div>
@@ -165,25 +174,36 @@ th { color: var(--mu); font-weight: 500; }
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore, collection, addDoc, onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const PIN = "2003";
 
 const app = initializeApp(FIREBASE_CONFIG);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-// Надежная функция извлечения значений (поддерживает обычный формат и REST API)
-function val(v, def = '') {
-  if (v === null || v === undefined) return def;
-  if (typeof v === 'object') {
-    return v.doubleValue ?? v.integerValue ?? v.stringValue ?? def;
+let isAuthenticatedByGoogle = false;
+
+// Кнопка входа через Google
+document.getElementById('google-btn').onclick = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    if (result.user) {
+      isAuthenticatedByGoogle = true;
+      document.getElementById('google-login-section').style.display = 'none';
+      document.getElementById('pin-section').style.display = 'block';
+      document.getElementById('auth-status').textContent = 'Введите PIN-код';
+    }
+  } catch (error) {
+    alert('Ошибка входа через Google: ' + error.message);
   }
-  return v;
-}
+};
 
-// Auth check
+// Проверка PIN-кода
 document.getElementById('pin-btn').onclick = () => {
   const input = document.getElementById('pin-input').value;
-  if(input === PIN) {
+  if(isAuthenticatedByGoogle && input === PIN) {
     document.getElementById('auth-modal').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     initApp();
@@ -191,6 +211,14 @@ document.getElementById('pin-btn').onclick = () => {
     document.getElementById('pin-err').style.display = 'block';
   }
 };
+
+function val(v, def = '') {
+  if (v === null || v === undefined) return def;
+  if (typeof v === 'object') {
+    return v.doubleValue ?? v.integerValue ?? v.stringValue ?? def;
+  }
+  return v;
+}
 
 let allExpenses = [], allIncomes = [], crmClients = [];
 
@@ -306,7 +334,7 @@ document.getElementById('expense-form').onsubmit = async (e) => {
     const file = fileInput.files[0];
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    await new Promise(res => reader.onload = () => { receiptUrl = reader.result; res(); });
+    await new Promise(res => reader.onload = () => { receiptUrl =Result = reader.result; res(); });
   }
 
   const rec = {
