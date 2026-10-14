@@ -7,10 +7,13 @@ let db = null;
 try {
   if (!getApps().length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
     let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-      privateKey = privateKey.slice(1, -1);
-    }
+    
+    // Аккуратно восстанавливаем переносы строк независимо от того, как ключ был вставлен
     privateKey = privateKey.replace(/\\n/g, '\n');
+    if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      // Если ключ вставлен сплошным текстом без дефисов, пробуем восстановить обертку
+      privateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+    }
 
     initializeApp({
       credential: cert({
@@ -22,7 +25,7 @@ try {
   }
   db = getFirestore();
 } catch (e) {
-  console.error('Firebase init error:', e);
+  console.error('Firebase init error details:', e.message);
 }
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -67,16 +70,12 @@ export default async function handler(req, res) {
       }
 
       if (text) {
-        // Убираем слова вроде "крон", "кр", "kr" из текста для поиска числа
         const cleanText = text.replace(/(крон|кр|kr|\.)/gi, '').trim();
-        
-        // Ищем первое попавшееся число в тексте
         const numMatch = cleanText.match(/\d+[\d\s]*/);
 
         if (numMatch) {
           const amountStr = numMatch[0].replace(/\s/g, '');
           const amount = parseFloat(amountStr);
-          // Описание — это весь текст без найденной суммы
           const description = cleanText.replace(numMatch[0], '').trim() || text;
 
           if (db) {
@@ -89,7 +88,7 @@ export default async function handler(req, res) {
             });
             await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${Math.abs(amount)} DKK — ${description}`);
           } else {
-            await sendMessage(chatId, `⚠️ Сумма найдена (${amount} DKK), но база данных не подключена.`);
+            await sendMessage(chatId, `⚠️ Сумма найдена (${amount} DKK), но объект базы данных ` + (db ? 'подключен' : 'пустой (проверьте ключ в Vercel)') + `.`);
           }
         } else {
           await sendMessage(chatId, `❌ Не удалось найти сумму. Укажите цифру (например: \`миксер 600\`).`);
