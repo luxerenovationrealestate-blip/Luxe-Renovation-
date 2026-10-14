@@ -12,9 +12,7 @@ if (!getApps().length) {
   });
 }
 const db = getFirestore();
-
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const ADMIN_CHAT_ID = process.env.ALLOWED_CHAT_ID;
 
 async function sendMessage(chatId, text) {
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -26,40 +24,37 @@ async function sendMessage(chatId, text) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(200).send('Bot is running!');
+    return res.status(200).send('Bot is working!');
   }
 
   try {
     const body = req.body;
 
-    // 1. Проверяем, если это заявка с сайта
+    // Заявка с сайта
     if (body && (body.name || body.service || body.смета)) {
       const leadText = `🔔 *Новая заявка с сайта!*\n\n` +
         `👤 *Имя:* ${body.name || 'Не указано'}\n` +
         `📞 *Телефон:* ${body.phone || 'Не указан'}\n` +
-        `📧 *Email:* ${body.email || 'Не указан'}\n` +
-        `📍 *Адрес:* ${body.address || 'Не указан'}\n` +
-        `🛠️ *Услуга:* ${body.service || 'Не указана'}\n` +
-        `💰 *Смета:* ${body.смета || body.price || 'Не указана'}\n` +
-        `💬 *Заметка:* ${body.note || body.comment || 'Нет'}`;
+        `💰 *Смета:* ${body.смета || body.price || 'Не указана'}`;
 
-      await sendMessage(ADMIN_CHAT_ID, leadText);
+      if (process.env.ALLOWED_CHAT_ID) {
+        await sendMessage(process.env.ALLOWED_CHAT_ID, leadText);
+      }
       return res.status(200).json({ ok: true, message: 'Lead sent' });
     }
 
-    // 2. Проверяем, если это сообщение от Telegram-бота (текст)
+    // Сообщение из Telegram (без фильтрации по ID для теста)
     if (body && body.message && body.message.chat) {
-      const chatId = body.message.chat.id.toString();
-      
-      if (chatId === ADMIN_CHAT_ID && body.message.text) {
-        const text = body.message.text.trim();
+      const chatId = body.message.chat.id;
+      const text = body.message.text ? body.message.text.trim() : '';
 
-        if (text === '/start') {
-          await sendMessage(chatId, '🤖 Бот на связи!\n\n• Отправьте текст для учета финансов (например: `500 материалы`).');
-          return res.status(200).json({ ok: true });
-        }
+      // Отправляем вам ваш ID обратно в чат, чтобы вы точный знали его
+      if (text === '/start' || text.toLowerCase() === 'id') {
+        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте расход (например: \`500 материал\`).`);
+        return res.status(200).json({ ok: true });
+      }
 
-        // Парсим сумму и описание
+      if (text) {
         const match = text.match(/^([+-]?\d+[\d\s]*)\s+(.+)$/);
         if (match) {
           const amount = parseFloat(match[1].replace(/\s/g, ''));
@@ -71,19 +66,19 @@ export default async function handler(req, res) {
             type: type,
             description: description,
             date: new Date().toISOString(),
+            chatId: chatId.toString()
           });
 
-          const sign = type === 'income' ? '+' : '-';
-          await sendMessage(chatId, `✅ Записано (${sign}): ${Math.abs(amount)} DKK — ${description}`);
+          await sendMessage(chatId, `✅ Записано в базу: ${Math.abs(amount)} DKK — ${description}`);
         } else {
-          await sendMessage(chatId, `Распознано: «${text}». Укажите сумму и описание (например: `500 краска`).`);
+          await sendMessage(chatId, `Получено: «${text}». Укажите сумму и текст (например: \`300 бензин\`).`);
         }
       }
     }
 
     return res.status(200).json({ ok: true });
   } catch (e) {
-    console.error('Error:', e);
+    console.error('Critical error:', e);
     return res.status(500).json({ error: e.message });
   }
 }
