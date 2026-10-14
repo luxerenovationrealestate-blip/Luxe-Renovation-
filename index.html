@@ -109,25 +109,19 @@ async function sendTelegramNotification(rec) {
   const botToken = "8632387676:AAGkXPFDjgjFXJA9eeosCMj0G1hFFNl57o";
   const chatId = "8669097831";
   
-  const text = `🔔 *Новая заявка с сайта!*\n\n` +
-               `👤 *Имя:* ${rec.name || 'Не указано'}\n` +
-               `📞 *Телефон:* ${rec.phone || 'Не указан'}\n` +
-               `✉️ *Email:* ${rec.email || 'Не указан'}\n` +
-               `📍 *Адрес:* ${rec.address || 'Не указан'}\n` +
-               `🛠 *Услуга:* ${rec.service || 'Не указана'}\n` +
-               `💰 *Смета:* ${rec.amount ? rec.amount + ' DKK' : 'Не рассчитана'}\n` +
-               `💬 *Заметка:* ${rec.notes || 'Нет'}`;
+  const text = `Новая заявка с сайта!\n\n` +
+               `Имя: ${rec.name || 'Не указано'}\n` +
+               `Телефон: ${rec.phone || 'Не указан'}\n` +
+               `Email: ${rec.email || 'Не указан'}\n` +
+               `Адрес: ${rec.address || 'Не указан'}\n` +
+               `Услуга: ${rec.service || 'Не указана'}\n` +
+               `Смета: ${rec.amount ? rec.amount + ' DKK' : 'Не рассчитана'}\n` +
+               `Заметка: ${rec.notes || 'Нет'}`;
+
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
 
   try {
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text,
-        parse_mode: "Markdown"
-      })
-    });
+    await fetch(url, { mode: 'no-cors' });
   } catch(e) {
     console.error("Ошибка отправки Telegram:", e);
   }
@@ -161,13 +155,12 @@ $("#f").onsubmit=async e=>{
       addDoc(collection(db, "leads"), rec)
     ]);
 
-    // Отправляем мгновенное уведомление в Telegram
+    // Отправляем мгновенное уведомление в Telegram с обходом CORS
     await sendTelegramNotification(rec);
 
     e.target.reset();
     $("#fnote").textContent=da?"Tak! Vi vender tilbage hurtigst muligt.":"Thank you! We will get back to you shortly.";
   } catch(x){
-    // Запасной отправка пиสมом в случае сбоя сети
     sendTelegramNotification(rec);
     const b=`Navn/Name: ${rec.name}\nTelefon/Phone: ${rec.phone}\nE-mail: ${rec.email}\nAdresse/Address: ${rec.address}\nType: ${rec.service}\n\n${rec.notes}`;
     location.href=`mailto:${MAIL}?subject=${encodeURIComponent("Luxe Renovation – "+(da?"Forespørgsel":"Request"))}&body=${encodeURIComponent(b)}`;
