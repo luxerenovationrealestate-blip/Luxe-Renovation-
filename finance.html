@@ -171,6 +171,18 @@ const PIN = "2003";
 const app = initializeApp(FIREBASE_CONFIG);
 const db = getFirestore(app);
 
+// Универсальная функция извлечения значений (работает с обычными данными и REST API)
+function extractVal(val, fallback) {
+  if (val === null || val === undefined) return fallback;
+  if (typeof val === 'object') {
+    if (val.doubleValue !== undefined) return val.doubleValue;
+    if (val.integerValue !== undefined) return val.integerValue;
+    if (val.stringValue !== undefined) return val.stringValue;
+    return fallback;
+  }
+  return val;
+}
+
 // Auth check
 document.getElementById('pin-btn').onclick = () => {
   const input = document.getElementById('pin-input').value;
@@ -193,17 +205,17 @@ function initApp() {
 
   document.getElementById('month-filter').onchange = renderData;
 
-  // Sync Expenses (прямое чтение документов)
+  // Sync Expenses
   onSnapshot(collection(db, "expenses"), (snap) => {
     allExpenses = snap.docs.map(d => {
       const data = d.data();
       return {
         id: d.id,
-        amount: Number(data.amount || 0),
-        title: String(data.title || 'Расход'),
-        cat: String(data.cat || 'Прочее'),
-        date: String(data.date || new Date().toISOString().substring(0, 10)),
-        receipt: String(data.receipt || '')
+        amount: Number(extractVal(data.amount, 0)),
+        title: String(extractVal(data.title, 'Расход')),
+        cat: String(extractVal(data.cat, 'Прочее')),
+        date: String(extractVal(data.date, new Date().toISOString().substring(0, 10))),
+        receipt: String(extractVal(data.receipt, ''))
       };
     });
     renderData();
@@ -215,9 +227,9 @@ function initApp() {
       const data = d.data();
       return {
         id: d.id,
-        amount: Number(data.amount || 0),
-        title: String(data.title || 'Доход'),
-        date: String(data.date || '').substring(0, 10)
+        amount: Number(extractVal(data.amount, 0)),
+        title: String(extractVal(data.title, 'Доход')),
+        date: String(extractVal(data.date, '')).substring(0, 10)
       };
     });
     renderData();
