@@ -1,31 +1,6 @@
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
 import fetch from 'node-fetch';
 
-let db = null;
-
-try {
-  if (!getApps().length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
-    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
-    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-      privateKey = privateKey.slice(1, -1);
-    }
-    // Восстанавливаем переносы из строкового формата \n
-    privateKey = privateKey.replace(/\\n/g, '\n');
-
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey,
-      }),
-    });
-  }
-  db = getFirestore();
-} catch (e) {
-  console.error('Firebase init error:', e.message);
-}
-
+const PROJECT_ID = 'luxe-renovation-72e1a';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 async function sendMessage(chatId, text) {
@@ -74,17 +49,32 @@ export default async function handler(req, res) {
           const amount = parseFloat(amountStr);
           const description = cleanText.replace(numMatch[0], '').trim() || text;
 
-          if (db) {
-            await db.collection('transactions').add({
-              amount: Math.abs(amount),
-              type: 'expense',
-              description: description,
-              date: new Date().toISOString(),
-              chatId: chatId.toString()
-            });
+          // Отправка данных напрямую через Firestore REST API (без тяжелых ключей)
+          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/transactions`;
+          
+          const firestoreBody = {
+            fields: {
+              amount: { doubleValue: Math.abs(amount) },
+              type: { stringValue: 'expense' },
+              description: { stringValue: description },
+              date: { stringValue: new Date().toISOString() },
+              chatId: { stringValue: chatId.toString() }
+            }
+          };
+
+          const dbResponse = await fetch(firestoreUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(firestoreBody)
+          });
+
+          if (dbResponse.ok) {
             await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${Math.abs(amount)} DKK — ${description}`);
           } else {
-            await sendMessage(chatId, `⚠️ Ошибка: объект базы данных не инициализирован.`);
+            const errText = await dbResponse.text();
+            console.error('Firestore REST error:', errText);
+            // Если база ругается на правила безопасности, хотя бы сообщим об этом
+            await sendMessage(chatId, `⚠️ Сумма найдена (${amount} DKK), но база отклонила запрос. Проверьте правила Firestore (Rules).`);
           }
         } else {
           await sendMessage(chatId, `❌ Не удалось найти сумму. Укажите цифру (например: \`миксер 600\`).`);
