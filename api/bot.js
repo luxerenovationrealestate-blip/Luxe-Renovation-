@@ -17,7 +17,7 @@ async function sendMessage(chatId, text) {
   }
 }
 
-// Расшифровка голоса через Whisper
+// 1. Расшифровка голоса через Whisper
 async function transcribeAudio(fileUrl) {
   const audioRes = await fetch(fileUrl);
   const audioBuffer = await audioRes.buffer();
@@ -37,7 +37,7 @@ async function transcribeAudio(fileUrl) {
   return data.text || '';
 }
 
-// Умный мульти-анализ текста через GPT-4o-mini
+// 2. Умный мульти-анализ текста через GPT-4o-mini
 async function parseMultipleTransactions(text) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -50,9 +50,12 @@ async function parseMultipleTransactions(text) {
       messages: [
         {
           role: 'system',
-          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. Определи тип операции: "income" (доход, аванс, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки сумму (number) и описание (string). Верни строго JSON-массив: [{"type": "income", "title": "Аванс", "amount": 2000}]'
+          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. В сообщении может быть одна или сразу несколько финансовых операций (список). Для каждой операции определи тип: "income" (доход, аванс, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки точную сумму (number) и чистое описание (string). Верни строго JSON-массив без лишнего текста, например: [{"type": "income", "title": "Аванс", "amount": 2000}, {"type": "expense", "title": "Миксер", "amount": 500}]'
         },
-        { role: 'user', content: text }
+        {
+          role: 'user',
+          content: text
+        }
       ],
       max_tokens: 300
     })
@@ -60,11 +63,13 @@ async function parseMultipleTransactions(text) {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || 'Ошибка AI парсинга');
+
   const content = data.choices[0].message.content.trim();
-  return JSON.parse(content.replace(/```json/g, '').replace(/```/g, '').trim());
+  const jsonClean = content.replace(/```json/g, '').replace(/```/g, '').trim();
+  return JSON.parse(jsonClean);
 }
 
-// Анализ изображения (чек/скриншот)
+// 3. Анализ изображения (чек/скриншот)
 async function analyzeImage(imageUrl) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -78,8 +83,14 @@ async function analyzeImage(imageUrl) {
         {
           role: 'user',
           content: [
-            { type: 'text', text: 'Определи документ: чек (expense) или перевод от клиента (income). Верни строго JSON: [{"type": "expense" или "income", "title": "описание", "amount": число}]' },
-            { type: 'image_url', image_url: { url: imageUrl } }
+            {
+              type: 'text',
+              text: 'Определи документ на изображении: чек (expense) или поступление/перевод от клиента (income). Верни строго JSON в виде массива: [{"type": "expense" || "income", "title": "описание", "amount": число}]'
+            },
+            {
+              type: 'image_url',
+              image_url: { url: imageUrl }
+            }
           ]
         }
       ],
@@ -89,16 +100,18 @@ async function analyzeImage(imageUrl) {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || 'Ошибка Vision API');
+
   const content = data.choices[0].message.content.trim();
-  return JSON.parse(content.replace(/```json/g, '').replace(/```/g, '').trim());
+  const jsonClean = content.replace(/```json/g, '').replace(/```/g, '').trim();
+  return JSON.parse(jsonClean);
 }
 
-// Сохранение транзакции в Firestore с автоматическим расчетом Moms (20% от суммы с НДС)
+// 4. Сохранение транзакции в Firestore с расчетом Moms (25%)
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
-  // В Дании Moms составляет 25% поверх net-цены, что равно ~20% от общей суммы (gross)
-  const momsAmount = type === 'income' ? Math.round(amount * 0.2 * 100) / 100 : 0;
+  // Расчет Moms ровно 25% для доходов
+  const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0;
 
   const collectionName = type === 'income' ? 'incomes' : 'expenses';
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}`;
@@ -124,7 +137,7 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
 
   if (dbResponse.ok) {
     if (type === 'income') {
-      await sendMessage(chatId, `🟢 **Доход с объекта зафиксирован:**\n💰 +${amount.toLocaleString()} DKK — ${title}\n🏷️ *Отложить Moms (20%):* ~${momsAmount.toLocaleString()} DKK`);
+      await sendMessage(chatId, `🟢 **Доход с объекта зафиксирован:**\n💰 +${amount.toLocaleString()} DKK — ${title}\n🏷️ *Отложить Moms (25%):* ~${momsAmount.toLocaleString()} DKK`);
     } else {
       await sendMessage(chatId, `🔴 **Расход записан:**\n💸 -${amount.toLocaleString()} DKK — ${title}`);
     }
@@ -142,61 +155,100 @@ export default async function handler(req, res) {
 
     const chatId = body.message.chat.id;
 
-    // Голосовые
+    // А. Голосовые сообщения
     if (body.message.voice || body.message.audio) {
-      if (!OPENAI_API_KEY) return res.status(200).json({ ok: true });
+      if (!OPENAI_API_KEY) {
+        await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY.`);
+        return res.status(200).json({ ok: true });
+      }
+
       const fileId = body.message.voice ? body.message.voice.file_id : body.message.audio.file_id;
       const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
       const fileData = await fileRes.json();
 
       if (fileData.ok && fileData.result?.file_path) {
         const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
-        await sendMessage(chatId, `🎤 Анализирую голос...`);
-        const text = await transcribeAudio(fileUrl);
-        const items = await parseMultipleTransactions(text);
-        for (const item of items) {
-          await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || text);
+        await sendMessage(chatId, `🎤 Слушаю и анализирую голос...`);
+        try {
+          const transcribedText = await transcribeAudio(fileUrl);
+          
+          if (transcribedText.toLowerCase().includes('moms') || transcribedText.toLowerCase().includes('налог')) {
+            await sendMomsInfo(chatId);
+            return res.status(200).json({ ok: true });
+          }
+
+          const items = await parseMultipleTransactions(transcribedText);
+          if (Array.isArray(items) && items.length > 0) {
+            for (const item of items) {
+              await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || transcribedText);
+            }
+          } else {
+            await sendMessage(chatId, `❌ Не удалось распознать операции в голосе: «${transcribedText}»`);
+          }
+        } catch (err) {
+          await sendMessage(chatId, `❌ Ошибка обработки: ${err.message}`);
         }
       }
       return res.status(200).json({ ok: true });
     }
 
-    // Фото / Чеки
+    // Б. Фото / Чеки
     if (body.message.photo && body.message.photo.length > 0) {
-      if (!OPENAI_API_KEY) return res.status(200).json({ ok: true });
+      if (!OPENAI_API_KEY) {
+        await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY.`);
+        return res.status(200).json({ ok: true });
+      }
+
       const photo = body.message.photo[body.message.photo.length - 1];
       const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${photo.file_id}`);
       const fileData = await fileRes.json();
 
       if (fileData.ok && fileData.result?.file_path) {
         const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
-        await sendMessage(chatId, `📸 Анализирую документ...`);
-        const items = await analyzeImage(fileUrl);
-        for (const item of items) {
-          await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || 'Документ', fileUrl);
+        await sendMessage(chatId, `📸 Анализирую изображение...`);
+        try {
+          const items = await analyzeImage(fileUrl);
+          if (Array.isArray(items) && items.length > 0) {
+            for (const item of items) {
+              await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || 'Документ', fileUrl);
+            }
+          } else {
+            await sendMessage(chatId, `❌ Не удалось распознать данные на фото.`);
+          }
+        } catch (err) {
+          await sendMessage(chatId, `❌ Ошибка анализа: ${err.message}`);
         }
       }
       return res.status(200).json({ ok: true });
     }
 
-    // Текст
+    // В. Текст
     if (body.message.text) {
       const text = body.message.text.trim();
       const lowerText = text.toLowerCase();
 
       if (text === '/start' || lowerText === 'id') {
-        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\n📌 Управление финансами и Moms:\n• /moms — график квартальных налогов\n• Отправляйте списки доходов, авансов и расходов.`);
+        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\n📌 Команды:\n• /moms — график квартальных налогов в Дании.\n• Отправляйте текстом списки доходов и расходов.\n• Присылайте фото чеков или скриншоты.`);
         return res.status(200).json({ ok: true });
       }
 
-      if (lowerText === '/moms' || lowerText.includes('moms') || lowerText.includes('налог')) {
+      if (lowerText === '/moms' || lowerText.includes('moms') || lowerText.includes('налог') || lowerText.includes('skat')) {
         await sendMomsInfo(chatId);
         return res.status(200).json({ ok: true });
       }
 
-      const items = await parseMultipleTransactions(text);
-      for (const item of items) {
-        await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || text);
+      await sendMessage(chatId, `⏳ Обрабатываю...`);
+      try {
+        const items = await parseMultipleTransactions(text);
+        if (Array.isArray(items) && items.length > 0) {
+          for (const item of items) {
+            await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || text);
+          }
+        } else {
+          await sendMessage(chatId, `❌ Не удалось найти финансовые операции в сообщении.`);
+        }
+      } catch (err) {
+        await sendMessage(chatId, `❌ Ошибка: ${err.message}`);
       }
     }
 
@@ -214,6 +266,6 @@ async function sendMomsInfo(chatId) {
               `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
               `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
               `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
-              `💡 Система автоматически рассчитывает резерв Moms (20% с каждого дохода) в вашей финансовой панели!`;
+              `💡 Автоматический расчет резерва Moms (25%) активирован для всех доходов с объектов!`;
   await sendMessage(chatId, msg);
 }
