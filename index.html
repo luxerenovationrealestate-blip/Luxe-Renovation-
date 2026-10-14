@@ -54,7 +54,6 @@ footer{background:#0d201c;color:#9fb0a7;text-align:center;padding:36px 20px;font
 <footer>© Luxe Renovation · CVR 46769074 · Speditørvej 10, København<br><a href="tel:+4531809770">+45 31 80 97 70</a> · <a href="mailto:luxerenovationrealestate@gmail.com">luxerenovationrealestate@gmail.com</a><br><a href="admin.html" style="opacity:.45;font-size:12px">Admin</a></footer>
 <script>
 const MAIL="luxerenovationrealestate@gmail.com",MARKUP=1.10,MOMS=1.25;
-// [da,en,unit,work,material] – DKK excl. moms. Edit prices here.
 const D={
 int:[["Nedrivning og bortskaffelse","Demolition & disposal","m²",80,15],["Spartling af vægge","Wall plastering/skim coat","m²",85,30],["Maling af vægge (2 lag)","Wall painting (2 coats)","m²",55,20],["Maling af lofter","Ceiling painting","m²",65,25],["Gipsvægge / skillevægge","Drywall partitions","m²",230,140],["Nedhængt loft","Suspended ceiling","m²",220,130],["Tapetsering","Wallpapering","m²",90,80],["Gulvfliser","Floor tiles","m²",300,250],["Vægfliser (bad/køkken)","Wall tiles (bath/kitchen)","m²",350,280],["Laminat / parketgulv","Laminate / parquet","m²",110,170],["El-installation pr. punkt","Electrical per point","stk",400,150],["VVS pr. punkt","Plumbing per point","stk",900,500],["Montering af indvendig dør","Interior door fitting","stk",600,1600]],
 pk:[["Basis totalrenovering","Basic full renovation","m²",1900,1700],["Standard totalrenovering","Standard full renovation","m²",2700,2500],["Premium totalrenovering","Premium full renovation","m²",3500,3800],["Komplet badeværelse (5 m²)","Complete bathroom (5 m²)","stk",24000,28000]],
@@ -102,12 +101,78 @@ const _r=render;render=function(){_r();extra()};render();
 import {FIREBASE_CONFIG} from "./firebase-config.js";
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getFirestore,collection,addDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-let db=null;try{db=getFirestore(initializeApp(FIREBASE_CONFIG))}catch(e){}
-$("#f").onsubmit=async e=>{e.preventDefault();const btn=e.submitter,v=id=>$("#"+id).value.trim(),da=lang=="da";btn.disabled=true;
-const rec={name:v("n"),phone:v("p"),email:v("e"),address:v("a"),service:$("#ty").value,amount:Math.round(window.EST||0),notes:v("m"),source:"Сайт",status:"Новая заявка",created:Date.now(),lang};
-try{if(!db||FIREBASE_CONFIG.apiKey.startsWith("ВСТАВЬ"))throw 0;await addDoc(collection(db,"clients"),rec);e.target.reset();$("#fnote").textContent=da?"Tak! Vi vender tilbage hurtigst muligt.":"Thank you! We will get back to you shortly."}
-catch(x){const b=`Navn/Name: ${rec.name}\nTelefon/Phone: ${rec.phone}\nE-mail: ${rec.email}\nAdresse/Address: ${rec.address}\nType: ${rec.service}\n\n${rec.notes}`;
-location.href=`mailto:${MAIL}?subject=${encodeURIComponent("Luxe Renovation – "+(da?"Forespørgsel":"Request"))}&body=${encodeURIComponent(b)}`}
-btn.disabled=false};
+
+let db=null;
+try{ db=getFirestore(initializeApp(FIREBASE_CONFIG)) }catch(e){}
+
+async function sendTelegramNotification(rec) {
+  const botToken = "8632387676:AAGkXPFDjgjFXJA9eeosCMj0G1hFFNl57o";
+  const chatId = "8669097831";
+  
+  const text = `🔔 *Новая заявка с сайта!*\n\n` +
+               `👤 *Имя:* ${rec.name || 'Не указано'}\n` +
+               `📞 *Телефон:* ${rec.phone || 'Не указан'}\n` +
+               `✉️ *Email:* ${rec.email || 'Не указан'}\n` +
+               `📍 *Адрес:* ${rec.address || 'Не указан'}\n` +
+               `🛠 *Услуга:* ${rec.service || 'Не указана'}\n` +
+               `💰 *Смета:* ${rec.amount ? rec.amount + ' DKK' : 'Не рассчитана'}\n` +
+               `💬 *Заметка:* ${rec.notes || 'Нет'}`;
+
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: "Markdown"
+      })
+    });
+  } catch(e) {
+    console.error("Ошибка отправки Telegram:", e);
+  }
+}
+
+$("#f").onsubmit=async e=>{
+  e.preventDefault();
+  const btn=e.submitter, v=id=>$("#"+id).value.trim(), da=lang=="da";
+  btn.disabled=true;
+  
+  const rec={
+    name:v("n"),
+    phone:v("p"),
+    email:v("e"),
+    address:v("a"),
+    service:$("#ty").value,
+    amount:Math.round(window.EST||0),
+    notes:v("m"),
+    source:"Сайт",
+    status:"Новая заявка",
+    created:Date.now(),
+    lang
+  };
+
+  try{
+    if(!db || FIREBASE_CONFIG.apiKey.startsWith("ВСТАВЬ")) throw new Error("No DB config");
+    
+    // Сохраняем в обе коллекции CRM для полной синхронизации
+    await Promise.all([
+      addDoc(collection(db, "clients"), rec),
+      addDoc(collection(db, "leads"), rec)
+    ]);
+
+    // Отправляем мгновенное уведомление в Telegram
+    await sendTelegramNotification(rec);
+
+    e.target.reset();
+    $("#fnote").textContent=da?"Tak! Vi vender tilbage hurtigst muligt.":"Thank you! We will get back to you shortly.";
+  } catch(x){
+    // Запасной отправка пиสมом в случае сбоя сети
+    sendTelegramNotification(rec);
+    const b=`Navn/Name: ${rec.name}\nTelefon/Phone: ${rec.phone}\nE-mail: ${rec.email}\nAdresse/Address: ${rec.address}\nType: ${rec.service}\n\n${rec.notes}`;
+    location.href=`mailto:${MAIL}?subject=${encodeURIComponent("Luxe Renovation – "+(da?"Forespørgsel":"Request"))}&body=${encodeURIComponent(b)}`;
+  }
+  btn.disabled=false;
+};
 </script>
 </body></html>
