@@ -1,5 +1,4 @@
 import fetch from 'node-fetch';
-import FormData from 'form-data';
 
 const PROJECT_ID = 'luxe-renovation-72e1a';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -13,26 +12,40 @@ async function sendMessage(chatId, text) {
   });
 }
 
-// Функция распознавания голоса через OpenAI Whisper
 async function transcribeAudio(fileUrl) {
   const audioRes = await fetch(fileUrl);
-  const audioBuffer = await audioRes.buffer();
+  const audioBuffer = await audioRes.arrayBuffer();
 
   const formData = new FormData();
-  formData.append('file', audioBuffer, { filename: 'voice.ogg', contentType: 'audio/ogg' });
+  formData.append('file', new Blob([audioBuffer], { type: 'audio/ogg' }), 'voice.ogg');
   formData.append('model', 'whisper-1');
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      ...formData.getHeaders()
-    },
-    body: formData
-  });
+  // Устанавливаем таймаут 10 секунд, чтобы бот не зависал навсегда
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-  const data = await response.json();
-  return data.text || '';
+  try {
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: formData,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || 'Ошибка OpenAI API');
+    }
+    return data.text || '';
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Превышено время ожидания OpenAI (таймаут)');
+    }
+    throw err;
+  }
 }
 
 async function processExpenseText(chatId, text) {
@@ -69,7 +82,7 @@ async function processExpenseText(chatId, text) {
       await sendMessage(chatId, `⚠️ Ошибка записи в базу.`);
     }
   } else {
-    await sendMessage(chatId, `❌ Распознано: «${text}». Но я не нашел сумму. Укажите цифру (например: \`миксер 600\`).`);
+    await sendMessage(chatId, `❌ Распознано: «${text}». Но сумма не найдена. Укажите цифру (например: \`миксер 600\`).`);
   }
 }
 
@@ -85,11 +98,14 @@ export default async function handler(req, res) {
       const chatId = body.message.chat.id;
       let text = '';
 
-      // Если пришло голосовое сообщение или аудиофайл
       if (body.message.voice || body.message.audio) {
+        if (!OPENAI_API_KEY) {
+          await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY в настройках Vercel.`);
+          return res.status(200).json({ ok: true });
+        }
+
         const fileId = body.message.voice ? body.message.voice.file_id : body.message.audio.file_id;
         
-        // Получаем путь к файлу в Telegram
         const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
         const fileData = await fileRes.json();
 
@@ -98,7 +114,13 @@ export default async function handler(req, res) {
           const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
           
           await sendMessage(chatId, `🎤 Слушаю голосовое...`);
-          text = await transcribeAudio(fileUrl);
+          
+          try {
+            text = await transcribeAudio(fileUrl);
+          } catch (voiceErr) {
+            await sendMessage(chatId, `❌ Ошибка расшифровки голоса: ${voiceErr.message}\n\n(Проверьте баланс в OpenAI Billing).`);
+            return res.status(200).json({ ok: true });
+          }
         } else {
           await sendMessage(chatId, `❌ Не удалось получить аудиофайл.`);
           return res.status(200).json({ ok: true });
@@ -108,7 +130,7 @@ export default async function handler(req, res) {
       }
 
       if (text === '/start' || text.toLowerCase() === 'id') {
-        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст или голосовое (например: \`миксер 500\`).`);
+        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст или голосовое.`);
         return res.status(200).json({ ok: true });
       }
 
