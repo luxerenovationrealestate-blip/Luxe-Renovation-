@@ -83,11 +83,11 @@ async function processExpenseText(chatId, text) {
 }
 
 export default async function handler(req, res) {
-  res.status(200).json({ ok: true });
-
   try {
     const body = req.body;
-    if (!body || !body.message) return;
+    if (!body || !body.message) {
+      return res.status(200).json({ ok: true });
+    }
 
     const chatId = body.message.chat.id;
     let text = '';
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
     if (body.message.voice || body.message.audio) {
       if (!OPENAI_API_KEY) {
         await sendMessage(chatId, `⚠️ Ошибка: не задан ключ OPEN_KEY в настройках Vercel.`);
-        return;
+        return res.status(200).json({ ok: true });
       }
 
       const fileId = body.message.voice ? body.message.voice.file_id : body.message.audio.file_id;
@@ -113,11 +113,11 @@ export default async function handler(req, res) {
           text = await transcribeAudio(fileUrl);
         } catch (voiceErr) {
           await sendMessage(chatId, `❌ Ошибка OpenAI: ${voiceErr.message}`);
-          return;
+          return res.status(200).json({ ok: true });
         }
       } else {
         await sendMessage(chatId, `❌ Не удалось получить аудиофайл из Telegram.`);
-        return;
+        return res.status(200).json({ ok: true });
       }
     } else if (body.message.text) {
       text = body.message.text.trim();
@@ -125,13 +125,16 @@ export default async function handler(req, res) {
 
     if (text === '/start' || text.toLowerCase() === 'id') {
       await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст или голосовое сообщение.`);
-      return;
+      return res.status(200).json({ ok: true });
     }
 
     if (text) {
       await processExpenseText(chatId, text);
     }
+
+    return res.status(200).json({ ok: true });
   } catch (e) {
     console.error('Critical handler error:', e);
+    return res.status(200).json({ ok: true, error: e.message });
   }
 }
