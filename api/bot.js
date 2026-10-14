@@ -37,8 +37,8 @@ async function transcribeAudio(fileUrl) {
   return data.text || '';
 }
 
-// 2. Умный анализ текста через GPT-4o-mini (определяет тип, точную сумму и очищает описание)
-async function parseTextWithAI(text) {
+// 2. Умный мульти-анализ текста через GPT-4o-mini (разбирает список на несколько операций)
+async function parseMultipleTransactions(text) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -50,14 +50,14 @@ async function parseTextWithAI(text) {
       messages: [
         {
           role: 'system',
-          content: 'Ты финансовый помощник. Проанализируй сообщение пользователя. Определи тип операции: "income" (если это доход, аванс, получено, пришло) или "expense" (если это покупка, расход, материал, трата). Извлеки чистую сумму в кронах (number) и сделай понятное короткое описание (string). Верни строго JSON вида: {"type": "expense" или "income", "title": "описание", "amount": число}'
+          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. В сообщении может быть одна или сразу несколько финансовых операций (список). Для каждой операции определи тип: "income" (доход, аванс, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки точную сумму (number) и чистое описание (string). Верни строго JSON-массив без лишнего текста, например: [{"type": "income", "title": "Аванс", "amount": 2000}, {"type": "expense", "title": "Миксер", "amount": 500}]'
         },
         {
           role: 'user',
           content: text
         }
       ],
-      max_tokens: 150
+      max_tokens: 300
     })
   });
 
@@ -85,7 +85,7 @@ async function analyzeImage(imageUrl) {
           content: [
             {
               type: 'text',
-              text: 'Определи документ на изображении: чек (expense) или поступление/перевод от клиента (income). Верни строго JSON: {"type": "expense" или "income", "title": "описание", "amount": число}'
+              text: 'Определи документ на изображении: чек (expense) или поступление/перевод от клиента (income). Верни строго JSON в виде массива: [{"type": "expense" или "income", "title": "описание", "amount": число}]'
             },
             {
               type: 'image_url',
@@ -106,12 +106,9 @@ async function analyzeImage(imageUrl) {
   return JSON.parse(jsonClean);
 }
 
-// 4. Сохранение в Firestore
+// 4. Сохранение одной транзакции в Firestore
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
-  if (isNaN(amount) || amount <= 0 || amount > 500000) {
-    await sendMessage(chatId, `❌ Неверная сумма (${amount}). Проверьте данные.`);
-    return;
-  }
+  if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
   const collectionName = type === 'income' ? 'incomes' : 'expenses';
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}`;
@@ -140,9 +137,9 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
     } else {
       await sendMessage(chatId, `🔴 **Расход записан:**\n💸 -${amount.toLocaleString()} DKK — ${title}`);
     }
-  } else {
-    await sendMessage(chatId, `⚠️ Ошибка записи в базу данных.`);
+    return true;
   }
+  return false;
 }
 
 export default async function handler(req, res) {
@@ -170,11 +167,14 @@ export default async function handler(req, res) {
         await sendMessage(chatId, `🎤 Слушаю и анализирую голос...`);
         try {
           const transcribedText = await transcribeAudio(fileUrl);
-          const parsed = await parseTextWithAI(transcribedText);
-          if (parsed && parsed.amount) {
-            await saveTransaction(chatId, parsed.type || 'expense', Number(parsed.amount), parsed.title || transcribedText);
+          const items = await parseMultipleTransactions(transcribedText);
+          
+          if (Array.isArray(items) && items.length > 0) {
+            for (const item of items) {
+              await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || transcribedText);
+            }
           } else {
-            await sendMessage(chatId, `❌ Не удалось распознать сумму в голосе: «${transcribedText}»`);
+            await sendMessage(chatId, `❌ Не удалось распознать операции в голосе: «${transcribedText}»`);
           }
         } catch (err) {
           await sendMessage(chatId, `❌ Ошибка обработки: ${err.message}`);
@@ -198,11 +198,13 @@ export default async function handler(req, res) {
         const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
         await sendMessage(chatId, `📸 Анализирую изображение...`);
         try {
-          const result = await analyzeImage(fileUrl);
-          if (result && result.amount) {
-            await saveTransaction(chatId, result.type || 'expense', Number(result.amount), result.title || 'Документ', fileUrl);
+          const items = await analyzeImage(fileUrl);
+          if (Array.isArray(items) && items.length > 0) {
+            for (const item of items) {
+              await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || 'Документ', fileUrl);
+            }
           } else {
-            await sendMessage(chatId, `❌ Не удалось распознать сумму на фото.`);
+            await sendMessage(chatId, `❌ Не удалось распознать данные на фото.`);
           }
         } catch (err) {
           await sendMessage(chatId, `❌ Ошибка анализа: ${err.message}`);
@@ -215,17 +217,19 @@ export default async function handler(req, res) {
     if (body.message.text) {
       const text = body.message.text.trim();
       if (text === '/start' || text.toLowerCase() === 'id') {
-        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nПишите любые суммы, тексты или отправляйте фото чеков.`);
+        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nМожете отправлять списки (например:\nАванс 2000\nМиксер 500\nВенчик 100)`);
         return res.status(200).json({ ok: true });
       }
 
       await sendMessage(chatId, `⏳ Обрабатываю...`);
       try {
-        const parsed = await parseTextWithAI(text);
-        if (parsed && parsed.amount) {
-          await saveTransaction(chatId, parsed.type || 'expense', Number(parsed.amount), parsed.title || text);
+        const items = await parseMultipleTransactions(text);
+        if (Array.isArray(items) && items.length > 0) {
+          for (const item of items) {
+            await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || text);
+          }
         } else {
-          await sendMessage(chatId, `❌ Не удалось найти сумму в сообщении.`);
+          await sendMessage(chatId, `❌ Не удалось найти финансовые операции в сообщении.`);
         }
       } catch (err) {
         await sendMessage(chatId, `❌ Ошибка: ${err.message}`);
