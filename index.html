@@ -81,7 +81,7 @@ $("#ty").innerHTML=`<option value="">${t.sel}</option>`+Object.keys(t.cat).map(k
 calc()}
 function calc(){const t=L[lang];let s=0;for(const k in D)if(k!="hr")D[k].forEach((r,j)=>{s+=(q[k+j]||0)*P(r,k)});
 const tt=s,sr=tt/MOMS,mo=tt-sr;window.EST=tt;
-$("#res").innerHTML=`<small>${t.tot[0]}</small><div class="big">${f(tt)} ${t.kr}</div><small>${f(sr)} + ${t.tot[1]} ${f(mo)} ${t.kr}</small>`}
+$("#res").innerHTML=`<small>${t.tot[0]}</small><div class="big">${f(tt)} ${t.kr}</div><small>${f(sr)} + ${t.tot[1]} ${f(mo)} ${f(mo)} ${t.kr}</small>`}
 $("#bda").onclick=()=>{lang="da";render()};$("#ben").onclick=()=>{lang="en";render()};
 $("#sendc").onclick=()=>{const t=L[lang];let l=[];for(const k in D)D[k].forEach((r,j)=>{if(q[k+j])l.push(`- ${r[lang=="da"?0:1]}: ${q[k+j]} ${r[2]}`)});
 if(l.length)$("#m").value=l.join("\n")+`\n${t.tot[0]}: ${f(EST)} ${t.kr}`};
@@ -106,19 +106,18 @@ let db=null;
 try{ db=getFirestore(initializeApp(FIREBASE_CONFIG)) }catch(e){}
 
 function sendTelegramNotification(rec) {
-  const botToken = "8632387676:AAGkXPFDjgjFXJA9eeosCMj0G1hFFNl57o";
+  const botToken = "8963185561:AAFcq0skXB4UTbMEU663KkIHbR-8jL-u4tw";
   const chatId = "8669097831";
   
-  const text = `Новая заявка с сайта!\n\n` +
-               `Имя: ${rec.name || 'Не указано'}\n` +
-               `Телефон: ${rec.phone || 'Не указан'}\n` +
-               `Email: ${rec.email || 'Не указан'}\n` +
-               `Адрес: ${rec.address || 'Не указан'}\n` +
-               `Услуга: ${rec.service || 'Не указана'}\n` +
-               `Смета: ${rec.amount ? rec.amount + ' DKK' : 'Не рассчитана'}\n` +
-               `Заметка: ${rec.notes || 'Нет'}`;
+  const text = `🔔 *Новая заявка с сайта!*\n\n` +
+               `👤 *Имя:* ${rec.name || 'Не указано'}\n` +
+               `📞 *Телефон:* ${rec.phone || 'Не указан'}\n` +
+               `✉️ *Email:* ${rec.email || 'Не указан'}\n` +
+               `📍 *Адрес:* ${rec.address || 'Не указан'}\n` +
+               `🛠 *Услуга:* ${rec.service || 'Не указана'}\n` +
+               `💰 *Смета:* ${rec.amount ? rec.amount + ' DKK' : 'Не рассчитана'}\n` +
+               `💬 *Заметка:* ${rec.notes || 'Нет'}`;
 
-  // Отправка через фоновую графическую метку (Image Beacon), гарантированно работающую без CORS-блокировок
   const img = new Image();
   img.src = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
 }
@@ -145,10 +144,7 @@ $("#f").onsubmit=async e=>{
   try{
     if(!db || FIREBASE_CONFIG.apiKey.startsWith("ВСТАВЬ")) throw new Error("No DB config");
     
-    // Единое сохранение в базу CRM (без дубликатов)
     await addDoc(collection(db, "clients"), rec);
-
-    // Мгновенная отправка в Telegram
     sendTelegramNotification(rec);
 
     e.target.reset();
