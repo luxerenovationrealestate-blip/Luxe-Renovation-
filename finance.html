@@ -91,6 +91,15 @@ th { color: var(--mu); font-weight: 500; }
     </div>
   </div>
 
+  <!-- Блок резерва на Moms (НДС 25%) -->
+  <div class="card" id="moms-reserve-block" style="background: #faf8f5; border-color: var(--gold);">
+    <h3>🇩🇰 Накопительный резерв на Moms (25%)</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 15px;">
+      <span style="color: var(--mu);">Сумма к уплате в Skat за период:</span>
+      <b id="moms-amount-total" style="color: var(--gold); font-size: 20px;">0 DKK</b>
+    </div>
+  </div>
+
   <div class="grid-2">
     <!-- Expense Form -->
     <div>
@@ -272,9 +281,11 @@ function renderData() {
   const incTotal = combinedIncomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
 
   const net = incTotal - expTotal;
+  const momsTotal = Math.round(incTotal * 0.25);
 
   document.getElementById('total-income').textContent = `${incTotal.toLocaleString()} DKK`;
   document.getElementById('total-expense').textContent = `${expTotal.toLocaleString()} DKK`;
+  document.getElementById('moms-amount-total').textContent = `${momsTotal.toLocaleString()} DKK`;
   
   const netEl = document.getElementById('net-profit');
   netEl.textContent = `${net.toLocaleString()} DKK`;
