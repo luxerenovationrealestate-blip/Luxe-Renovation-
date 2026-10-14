@@ -19,7 +19,6 @@ export default async function handler(req, res) {
   try {
     const body = req.body;
 
-    // Обработка лидов с сайта
     if (body && (body.name || body.service || body.смета)) {
       const leadText = `🔔 *Новая заявка с сайта!*\n\n` +
         `👤 *Имя:* ${body.name || 'Не указано'}\n` +
@@ -32,7 +31,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'Lead sent' });
     }
 
-    // Обработка сообщений из Telegram
     if (body && body.message && body.message.chat) {
       const chatId = body.message.chat.id;
       const text = body.message.text ? body.message.text.trim() : '';
@@ -51,10 +49,9 @@ export default async function handler(req, res) {
           const amount = parseFloat(amountStr);
           const description = cleanText.replace(numMatch[0], '').trim() || text;
 
-          // URL для записи в коллекцию expenses через REST API
+          // Используем стандартный документ REST API со схемой типа значений, либо пишем в коллекцию через JSON
           const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
           
-          // Простой плоский формат полей, который сайт читает идеально без парсеров
           const firestoreBody = {
             fields: {
               amount: { doubleValue: Math.abs(amount) },
