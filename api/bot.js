@@ -19,6 +19,7 @@ export default async function handler(req, res) {
   try {
     const body = req.body;
 
+    // Обработка лидов с сайта
     if (body && (body.name || body.service || body.смета)) {
       const leadText = `🔔 *Новая заявка с сайта!*\n\n` +
         `👤 *Имя:* ${body.name || 'Не указано'}\n` +
@@ -31,6 +32,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'Lead sent' });
     }
 
+    // Обработка сообщений из Telegram-бота
     if (body && body.message && body.message.chat) {
       const chatId = body.message.chat.id;
       const text = body.message.text ? body.message.text.trim() : '';
@@ -49,9 +51,10 @@ export default async function handler(req, res) {
           const amount = parseFloat(amountStr);
           const description = cleanText.replace(numMatch[0], '').trim() || text;
 
-          // Используем стандартный документ REST API со схемой типа значений, либо пишем в коллекцию через JSON
+          // Правильный URL корневой коллекции expenses через REST API
           const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
           
+          // Структура документов, совместимая с сайтом
           const firestoreBody = {
             fields: {
               amount: { doubleValue: Math.abs(amount) },
