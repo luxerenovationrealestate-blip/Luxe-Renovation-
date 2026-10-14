@@ -45,19 +45,30 @@ async function transcribeAudio(fileUrl) {
 }
 
 async function processExpenseText(chatId, text) {
-  const cleanText = text.replace(/(крон|кр|kr|\.)/gi, '').trim();
-  const numMatch = cleanText.match(/\d+[\d\s]*/);
+  // Убираем валютные приставки, но оставляем числа и текст
+  const cleanText = text.replace(/(крон|кроны|кр|dkk|kr|\.)/gi, '').trim();
+  
+  // Улучшенный поиск любых чисел от 1 до 500 000 (поддерживает пробелы внутри тысяч, например "15 000" или "500000")
+  const numMatch = cleanText.match(/\d{1,3}(?:\s\d{3})+|\d+/g);
 
-  if (numMatch) {
-    const amountStr = numMatch[0].replace(/\s/g, '');
-    const amount = parseFloat(amountStr);
-    const description = cleanText.replace(numMatch[0], '').trim() || text;
+  if (numMatch && numMatch.length > 0) {
+    // Берем последнее найденное число (обычно сумма в конце или в тексте)
+    const rawNumStr = numMatch[numMatch.length - 1];
+    const amount = parseFloat(rawNumStr.replace(/\s/g, ''));
+    
+    // Описание — это весь текст без найденного числа
+    const description = cleanText.replace(rawNumStr, '').trim() || text;
+
+    if (isNaN(amount) || amount <= 0 || amount > 500000) {
+      await sendMessage(chatId, `❌ Сумма должна быть в пределах от 1 до 500 000 DKK.`);
+      return;
+    }
 
     const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
     
     const firestoreBody = {
       fields: {
-        amount: { doubleValue: Math.abs(amount) },
+        amount: { doubleValue: amount },
         title: { stringValue: description },
         cat: { stringValue: 'Прочее' },
         date: { stringValue: new Date().toISOString().substring(0, 10) },
@@ -73,12 +84,12 @@ async function processExpenseText(chatId, text) {
     });
 
     if (dbResponse.ok) {
-      await sendMessage(chatId, `✅ Успешно записано из голоса:\n💰 ${Math.abs(amount)} DKK — ${description}`);
+      await sendMessage(chatId, `✅ Успешно записано:\n💰 ${amount.toLocaleString()} DKK — ${description}`);
     } else {
       await sendMessage(chatId, `⚠️ Ошибка записи в базу данных.`);
     }
   } else {
-    await sendMessage(chatId, `❌ Распознано: «${text}». Но сумма не найдена. Укажите цифру (например: \`миксер 600\`).`);
+    await sendMessage(chatId, `❌ Распознано: «${text}». Но я не нашел сумму. Назовите или укажите число (например: \`15000 материалы\` или \`500\`).`);
   }
 }
 
@@ -124,7 +135,7 @@ export default async function handler(req, res) {
     }
 
     if (text === '/start' || text.toLowerCase() === 'id') {
-      await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст или голосовое сообщение.`);
+      await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте любую сумму от 1 до 500 000 текстом или голосом.`);
       return res.status(200).json({ ok: true });
     }
 
