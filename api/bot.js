@@ -37,7 +37,7 @@ async function transcribeAudio(fileUrl) {
   return data.text || '';
 }
 
-// 2. Умный мульти-анализ текста через GPT-4o-mini (разбирает список на несколько операций)
+// 2. Умный мульти-анализ текста через GPT-4o-mini
 async function parseMultipleTransactions(text) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -85,7 +85,7 @@ async function analyzeImage(imageUrl) {
           content: [
             {
               type: 'text',
-              text: 'Определи документ на изображении: чек (expense) или поступление/перевод от клиента (income). Верни строго JSON в виде массива: [{"type": "expense" или "income", "title": "описание", "amount": число}]'
+              text: 'Определи документ на изображении: чек (expense) или поступление/перевод от клиента (income). Верни строго JSON в виде массива: [{"type": "expense" || "income", "title": "описание", "amount": число}]'
             },
             {
               type: 'image_url',
@@ -106,7 +106,7 @@ async function analyzeImage(imageUrl) {
   return JSON.parse(jsonClean);
 }
 
-// 4. Сохранение одной транзакции в Firestore
+// 4. Сохранение транзакции в Firestore
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
@@ -167,8 +167,14 @@ export default async function handler(req, res) {
         await sendMessage(chatId, `🎤 Слушаю и анализирую голос...`);
         try {
           const transcribedText = await transcribeAudio(fileUrl);
-          const items = await parseMultipleTransactions(transcribedText);
           
+          // Проверяем, не запросил ли пользователь информацию по налогам голосом
+          if (transcribedText.toLowerCase().includes('moms') || transcribedText.toLowerCase().includes('налог')) {
+            await sendMomsInfo(chatId);
+            return res.status(200).json({ ok: true });
+          }
+
+          const items = await parseMultipleTransactions(transcribedText);
           if (Array.isArray(items) && items.length > 0) {
             for (const item of items) {
               await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || transcribedText);
@@ -216,8 +222,16 @@ export default async function handler(req, res) {
     // В. Текст
     if (body.message.text) {
       const text = body.message.text.trim();
+      const lowerText = text.toLowerCase();
+
       if (text === '/start' || text.toLowerCase() === 'id') {
-        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nМожете отправлять списки (например:\nАванс 2000\nМиксер 500\nВенчик 100)`);
+        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\n📌 Команды:\n• Напишите /moms — график уплаты квартальных налогов в Дании.\n• Отправляйте текстом списки доходов и расходов.\n• Присылайте фото чеков или скриншоты.`);
+        return res.status(200).json({ ok: true });
+      }
+
+      // Обработка команды /moms или запроса налогов
+      if (lowerText === '/moms' || lowerText.includes('moms') || lowerText.includes('налог') || lowerText.includes('skat')) {
+        await sendMomsInfo(chatId);
         return res.status(200).json({ ok: true });
       }
 
@@ -241,4 +255,15 @@ export default async function handler(req, res) {
     console.error('Handler error:', e);
     return res.status(200).json({ ok: true, error: e.message });
   }
+}
+
+async function sendMomsInfo(chatId) {
+  const msg = `🇩🇰 **График уплаты налогов и Moms (Skattestyrelsen):**\n\n` +
+              `🏢 **Luxe Renovation (CVR: 46769074)**\n\n` +
+              `🔹 **Q1 (Январь — Март):** Сдача и уплата до **1 июня**\n` +
+              `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
+              `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
+              `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
+              `💡 Не забудьте вовремя подавать декларацию на **TastSelv Erhverv**, даже если за квартал не было движения средств (nil-moms).`;
+  await sendMessage(chatId, msg);
 }
