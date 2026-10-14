@@ -1,6 +1,30 @@
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import fetch from 'node-fetch';
 
-const PROJECT_ID = 'luxe-renovation-72e1a';
+let db = null;
+
+try {
+  if (!getApps().length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, '\n');
+
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey,
+      }),
+    });
+  }
+  db = getFirestore();
+} catch (e) {
+  console.error('Firebase init error:', e.message);
+}
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 async function sendMessage(chatId, text) {
@@ -49,32 +73,19 @@ export default async function handler(req, res) {
           const amount = parseFloat(amountStr);
           const description = cleanText.replace(numMatch[0], '').trim() || text;
 
-          // Отправляем напрямую в коллекцию "expenses", которую читает сайт
-          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
-          
-          const firestoreBody = {
-            fields: {
-              amount: { doubleValue: Math.abs(amount) },
-              title: { stringValue: description },
-              cat: { stringValue: 'Прочее' },
-              date: { stringValue: new Date().toISOString().substring(0, 10) },
-              created: { integerValue: Date.now().toString() },
-              chatId: { stringValue: chatId.toString() }
-            }
-          };
-
-          const dbResponse = await fetch(firestoreUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(firestoreBody)
-          });
-
-          if (dbResponse.ok) {
+          if (db) {
+            // Записываем строго в корневую коллекцию "expenses", которую читает сайт
+            await db.collection('expenses').add({
+              amount: Math.abs(amount),
+              title: description,
+              cat: 'Прочее',
+              date: new Date().toISOString().substring(0, 10),
+              created: Date.now(),
+              chatId: chatId.toString()
+            });
             await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${Math.abs(amount)} DKK — ${description}`);
           } else {
-            const errText = await dbResponse.text();
-            console.error('Firestore REST error:', errText);
-            await sendMessage(chatId, `⚠️ Сумма найдена (${amount} DKK), но база отклонила запрос.`);
+            await sendMessage(chatId, `⚠️ Ошибка: база данных не инициализирована (проверьте ключ в Vercel).`);
           }
         } else {
           await sendMessage(chatId, `❌ Не удалось найти сумму. Укажите цифру (например: \`миксер 600\`).`);
