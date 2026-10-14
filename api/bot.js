@@ -1,7 +1,9 @@
 import fetch from 'node-fetch';
+import FormData from 'form-data';
 
 const PROJECT_ID = 'luxe-renovation-72e1a';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const OPENAI_API_KEY = process.env.OPEN_KEY || process.env.OPENAI_API_KEY;
 
 async function sendMessage(chatId, text) {
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -9,6 +11,66 @@ async function sendMessage(chatId, text) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'Markdown' })
   });
+}
+
+// Функция распознавания голоса через OpenAI Whisper
+async function transcribeAudio(fileUrl) {
+  const audioRes = await fetch(fileUrl);
+  const audioBuffer = await audioRes.buffer();
+
+  const formData = new FormData();
+  formData.append('file', audioBuffer, { filename: 'voice.ogg', contentType: 'audio/ogg' });
+  formData.append('model', 'whisper-1');
+
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      ...formData.getHeaders()
+    },
+    body: formData
+  });
+
+  const data = await response.json();
+  return data.text || '';
+}
+
+async function processExpenseText(chatId, text) {
+  const cleanText = text.replace(/(крон|кр|kr|\.)/gi, '').trim();
+  const numMatch = cleanText.match(/\d+[\d\s]*/);
+
+  if (numMatch) {
+    const amountStr = numMatch[0].replace(/\s/g, '');
+    const amount = parseFloat(amountStr);
+    const description = cleanText.replace(numMatch[0], '').trim() || text;
+
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
+    
+    const firestoreBody = {
+      fields: {
+        amount: { doubleValue: Math.abs(amount) },
+        title: { stringValue: description },
+        cat: { stringValue: 'Прочее' },
+        date: { stringValue: new Date().toISOString().substring(0, 10) },
+        created: { stringValue: Date.now().toString() },
+        chatId: { stringValue: chatId.toString() }
+      }
+    };
+
+    const dbResponse = await fetch(firestoreUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(firestoreBody)
+    });
+
+    if (dbResponse.ok) {
+      await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${Math.abs(amount)} DKK — ${description}`);
+    } else {
+      await sendMessage(chatId, `⚠️ Ошибка записи в базу.`);
+    }
+  } else {
+    await sendMessage(chatId, `❌ Распознано: «${text}». Но я не нашел сумму. Укажите цифру (например: \`миксер 600\`).`);
+  }
 }
 
 export default async function handler(req, res) {
@@ -19,66 +81,39 @@ export default async function handler(req, res) {
   try {
     const body = req.body;
 
-    if (body && (body.name || body.service || body.смета)) {
-      const leadText = `🔔 *Новая заявка с сайта!*\n\n` +
-        `👤 *Имя:* ${body.name || 'Не указано'}\n` +
-        `📞 *Телефон:* ${body.phone || 'Не указан'}\n` +
-        `💰 *Смета:* ${body.смета || body.price || 'Не указана'}`;
-
-      if (process.env.ALLOWED_CHAT_ID) {
-        await sendMessage(process.env.ALLOWED_CHAT_ID, leadText);
-      }
-      return res.status(200).json({ ok: true, message: 'Lead sent' });
-    }
-
-    if (body && body.message && body.message.chat) {
+    if (body && body.message) {
       const chatId = body.message.chat.id;
-      const text = body.message.text ? body.message.text.trim() : '';
+      let text = '';
+
+      // Если пришло голосовое сообщение или аудиофайл
+      if (body.message.voice || body.message.audio) {
+        const fileId = body.message.voice ? body.message.voice.file_id : body.message.audio.file_id;
+        
+        // Получаем путь к файлу в Telegram
+        const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+        const fileData = await fileRes.json();
+
+        if (fileData.ok && fileData.result && fileData.result.file_path) {
+          const filePath = fileData.result.file_path;
+          const fileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${filePath}`;
+          
+          await sendMessage(chatId, `🎤 Слушаю голосовое...`);
+          text = await transcribeAudio(fileUrl);
+        } else {
+          await sendMessage(chatId, `❌ Не удалось получить аудиофайл.`);
+          return res.status(200).json({ ok: true });
+        }
+      } else if (body.message.text) {
+        text = body.message.text.trim();
+      }
 
       if (text === '/start' || text.toLowerCase() === 'id') {
-        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте расход (например: \`миксер 500\`).`);
+        await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте текст или голосовое (например: \`миксер 500\`).`);
         return res.status(200).json({ ok: true });
       }
 
       if (text) {
-        const cleanText = text.replace(/(крон|кр|kr|\.)/gi, '').trim();
-        const numMatch = cleanText.match(/\d+[\d\s]*/);
-
-        if (numMatch) {
-          const amountStr = numMatch[0].replace(/\s/g, '');
-          const amount = parseFloat(amountStr);
-          const description = cleanText.replace(numMatch[0], '').trim() || text;
-
-          // Прямая отправка в Firestore через REST API
-          const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
-          
-          const firestoreBody = {
-            fields: {
-              amount: { doubleValue: Math.abs(amount) },
-              title: { stringValue: description },
-              cat: { stringValue: 'Прочее' },
-              date: { stringValue: new Date().toISOString().substring(0, 10) },
-              created: { stringValue: Date.now().toString() },
-              chatId: { stringValue: chatId.toString() }
-            }
-          };
-
-          const dbResponse = await fetch(firestoreUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(firestoreBody)
-          });
-
-          if (dbResponse.ok) {
-            await sendMessage(chatId, `✅ Успешно записано в базу:\n💰 ${Math.abs(amount)} DKK — ${description}`);
-          } else {
-            const errText = await dbResponse.text();
-            console.error('Firestore REST error:', errText);
-            await sendMessage(chatId, `⚠️ Ошибка записи в базу.`);
-          }
-        } else {
-          await sendMessage(chatId, `❌ Не удалось найти сумму. Укажите цифру (например: \`миксер 600\`).`);
-        }
+        await processExpenseText(chatId, text);
       }
     }
 
