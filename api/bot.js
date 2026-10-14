@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const body = req.body;
 
-    // Обработка заявок с сайта
+    // Обработка лидов с сайта
     if (body && (body.name || body.service || body.смета)) {
       const leadText = `🔔 *Новая заявка с сайта!*\n\n` +
         `👤 *Имя:* ${body.name || 'Не указано'}\n` +
@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'Lead sent' });
     }
 
-    // Обработка сообщений из Telegram-бота
+    // Обработка сообщений из Telegram
     if (body && body.message && body.message.chat) {
       const chatId = body.message.chat.id;
       const text = body.message.text ? body.message.text.trim() : '';
@@ -51,16 +51,17 @@ export default async function handler(req, res) {
           const amount = parseFloat(amountStr);
           const description = cleanText.replace(numMatch[0], '').trim() || text;
 
-          // Прямой REST-запрос в корневую коллекцию "expenses" без капризных ключей
+          // URL для записи в коллекцию expenses через REST API
           const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/expenses`;
           
+          // Простой плоский формат полей, который сайт читает идеально без парсеров
           const firestoreBody = {
             fields: {
               amount: { doubleValue: Math.abs(amount) },
               title: { stringValue: description },
               cat: { stringValue: 'Прочее' },
               date: { stringValue: new Date().toISOString().substring(0, 10) },
-              created: { integerValue: Date.now().toString() },
+              created: { stringValue: Date.now().toString() },
               chatId: { stringValue: chatId.toString() }
             }
           };
@@ -76,7 +77,7 @@ export default async function handler(req, res) {
           } else {
             const errText = await dbResponse.text();
             console.error('Firestore REST error:', errText);
-            await sendMessage(chatId, `⚠️ Ошибка записи в базу. Проверьте правила Firestore.`);
+            await sendMessage(chatId, `⚠️ Ошибка записи в базу.`);
           }
         } else {
           await sendMessage(chatId, `❌ Не удалось найти сумму. Укажите цифру (например: \`миксер 600\`).`);
