@@ -17,25 +17,20 @@ const db = getFirestore();
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 const ADMIN_CHAT_ID = process.env.ALLOWED_CHAT_ID;
 
-// Обработка текстовых команд
-bot.on('text', async (ctx) => {
-  const chatId = ctx.chat.id.toString();
-  const text = ctx.message.text;
-
-  // Проверка, что пишет администратор (вы)
-  if (chatId !== ADMIN_CHAT_ID) return;
-
-  // Команда /start
-  if (text === '/start') {
+// Функция сохранения транзакции в Firebase
+async function saveTransaction(ctx, text) {
+  const cleanText = text.trim();
+  
+  if (cleanText === '/start') {
     return ctx.reply(
       '🤖 Бот на связи!\n\n' +
-      '• Сюда падают заявки с вашего сайта.\n' +
-      '• Для учета финансов просто отправьте сумму и описание (например: `1500 материалы` или `-300 бензин`).'
+      '• Сюда приходят заявки с сайта.\n' +
+      '• Для учета финансов отправьте текст или голосовое (например: `1500 материалы` или `-300 бензин`).'
     );
   }
 
-  // Пробуем распознать финансовую запись (начинается с числа)
-  const match = text.match(/^([+-]?\d+[\d\s]*)\s+(.+)$/);
+  // Регулярное выражение: ищет сумму в начале и описание дальше
+  const match = cleanText.match(/^([+-]?\d+[\d\s]*)\s+(.+)$/);
   
   if (match) {
     const amount = parseFloat(match[1].replace(/\s/g, ''));
@@ -57,16 +52,64 @@ bot.on('text', async (ctx) => {
       await ctx.reply('❌ Ошибка сохранения в базу данных.');
     }
   } else {
-    // Если это не финансы, бот просто подтвердит получение обычного текста
-    await ctx.reply('Сообщение получено. Если это финансы, отправьте в формате: "сумма описание" (например, `500 инструмент`).');
+    await ctx.reply(`Распознано: «${cleanText}». Укажите сумму и описание (например: `600 миксер`).`);
+  }
+}
+
+// Обработка текста
+bot.on('text', async (ctx) => {
+  if (ctx.chat.id.toString() !== ADMIN_CHAT_ID) return;
+  await saveTransaction(ctx, ctx.message.text);
+});
+
+// Обработка голосовых сообщений через Whisper API
+bot.on('voice', async (ctx) => {
+  if (ctx.chat.id.toString() !== ADMIN_CHAT_ID) return;
+
+  try {
+    await ctx.reply('🎧 Распознаю голосовое...');
+    
+    const fileId = ctx.message.voice.file_id;
+    const fileLink = await bot.telegram.getFileLink(fileId);
+    
+    // Скачиваем аудиофайл через встроенный fetch
+    const audioRes = await fetch(fileLink);
+    const arrayBuffer = await audioRes.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: 'audio/ogg' });
+
+    // Формируем FormData для OpenAI
+    const formData = new FormData();
+    formData.append('file', blob, 'voice.ogg');
+    formData.append('model', 'whisper-1');
+
+    const transcriptionRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: formData,
+    });
+
+    const transcriptionData = await transcriptionRes.json();
+    
+    if (!transcriptionData.text) {
+      return ctx.reply('❌ Не удалось распознать голос.');
+    }
+
+    await saveTransaction(ctx, transcriptionData.text);
+
+  } catch (error) {
+    console.error('Voice error:', error);
+    await ctx.reply('❌ Ошибка при обработке голосового сообщения.');
   }
 });
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
-      // Проверяем, прилетел ли лид с сайта (если есть поле name или service)
       const body = req.body;
+      
+      // Проверка на лид с сайта
       if (body && (body.name || body.service || body.смета)) {
         const leadText = `🔔 *Новая заявка с сайта!*\n\n` +
           `👤 *Имя:* ${body.name || 'Не указано'}\n` +
@@ -81,11 +124,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, message: 'Lead sent' });
       }
 
-      // Иначе обрабатываем как обновление от Telegram (сообщения от вас)
+      // Обработка запроса от Telegram
       await bot.handleUpdate(req.body);
       return res.status(200).json({ ok: true });
     } catch (e) {
-      console.error(e);
+      console.error('Handler error:', e);
       return res.status(500).json({ error: e.message });
     }
   }
