@@ -2,16 +2,29 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import fetch from 'node-fetch';
 
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-  });
+let db = null;
+
+try {
+  if (!getApps().length && process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, '\n');
+
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey,
+      }),
+    });
+  }
+  db = getFirestore();
+} catch (e) {
+  console.error('Firebase init error:', e);
 }
-const db = getFirestore();
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 async function sendMessage(chatId, text) {
@@ -24,13 +37,13 @@ async function sendMessage(chatId, text) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(200).send('Bot is working!');
+    return res.status(200).send('Bot is working perfectly!');
   }
 
   try {
     const body = req.body;
 
-    // Заявка с сайта
+    // 1. Обработка заявки с сайта
     if (body && (body.name || body.service || body.смета)) {
       const leadText = `🔔 *Новая заявка с сайта!*\n\n` +
         `👤 *Имя:* ${body.name || 'Не указано'}\n` +
@@ -43,12 +56,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'Lead sent' });
     }
 
-    // Сообщение из Telegram (без фильтрации по ID для теста)
+    // 2. Обработка сообщений из Telegram
     if (body && body.message && body.message.chat) {
       const chatId = body.message.chat.id;
       const text = body.message.text ? body.message.text.trim() : '';
 
-      // Отправляем вам ваш ID обратно в чат, чтобы вы точный знали его
       if (text === '/start' || text.toLowerCase() === 'id') {
         await sendMessage(chatId, `🤖 Бот на связи!\nВаш Chat ID: \`${chatId}\`\n\nОтправьте расход (например: \`500 материал\`).`);
         return res.status(200).json({ ok: true });
@@ -61,15 +73,18 @@ export default async function handler(req, res) {
           const description = match[2];
           const type = amount >= 0 ? 'income' : 'expense';
 
-          await db.collection('transactions').add({
-            amount: Math.abs(amount),
-            type: type,
-            description: description,
-            date: new Date().toISOString(),
-            chatId: chatId.toString()
-          });
-
-          await sendMessage(chatId, `✅ Записано в базу: ${Math.abs(amount)} DKK — ${description}`);
+          if (db) {
+            await db.collection('transactions').add({
+              amount: Math.abs(amount),
+              type: type,
+              description: description,
+              date: new Date().toISOString(),
+              chatId: chatId.toString()
+            });
+            await sendMessage(chatId, `✅ Записано в базу: ${Math.abs(amount)} DKK — ${description}`);
+          } else {
+            await sendMessage(chatId, `⚠️ Текст принят (${amount} DKK), но база данных не подключена.`);
+          }
         } else {
           await sendMessage(chatId, `Получено: «${text}». Укажите сумму и текст (например: \`300 бензин\`).`);
         }
@@ -78,7 +93,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ ok: true });
   } catch (e) {
-    console.error('Critical error:', e);
-    return res.status(500).json({ error: e.message });
+    console.error('Handler error:', e);
+    // Возвращаем 200, чтобы Telegram не считал запрос упавшим и не повторял его бесконечно
+    return res.status(200).json({ error: e.message });
   }
 }
