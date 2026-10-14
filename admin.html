@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="ru"><head><meta charset="utf-8">
+<html lang="ru">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Luxe Renovation – Клиентская база</title>
 <style>
@@ -22,13 +24,36 @@ input,select,textarea{background:var(--card);border:1px solid var(--line);border
 .ov{position:fixed;inset:0;background:#000a;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:20px;z-index:20}.ov.on{display:flex}
 .md{background:var(--bg);border-radius:18px;padding:20px;width:100%;max-width:520px;display:grid;gap:10px}.md h2{margin:0;font:600 22px Georgia,serif}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 label{font-size:12px;color:var(--mu);display:block;margin-bottom:3px}.empty{text-align:center;color:var(--mu);padding:40px 10px}
+#auth-block{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;text-align:center}
+#auth-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px;max-width:400px;width:100%;box-shadow:0 10px 30px #0002}
 @media(max-width:520px){.two{grid-template-columns:1fr}h1{font-size:24px}}
-</style></head><body><div class="w">
+</style>
+</head>
+<body>
+
+<!-- Экран авторизации -->
+<div id="auth-block">
+  <div id="auth-card">
+    <h1 style="margin-bottom:8px">Luxe Renovation</h1>
+    <p class="sub" style="margin-bottom:24px">Доступ разрешен только администратору</p>
+    <button class="b" id="btn-login" style="width:100%">Войти через Google</button>
+    <p id="auth-err" style="color:#c0392b;font-size:13px;margin-top:12px;display:none"></p>
+  </div>
+</div>
+
+<div class="w">
 <div class="top"><div><h1>Клиентская база</h1><div class="sub">Luxe Renovation · видна только вам</div></div>
-<div><a class="b o s" style="text-decoration:none;display:inline-block" target="_blank" href="https://claude.ai/artifact/7kn9ASuneGRzGRsja932wN">← Сайт</a> <button class="b o s" id="imp">Импорт из письма</button> <button class="b o s" id="exp">CSV</button> <button class="b" id="add">+ Клиент</button></div></div>
+<div>
+  <a class="b o s" style="text-decoration:none;display:inline-block" href="index.html">← Сайт</a> 
+  <button class="b o s" id="imp">Импорт из письма</button> 
+  <button class="b o s" id="exp">CSV</button> 
+  <button class="b" id="add">+ Клиент</button>
+  <button class="b o s" id="btn-logout" style="margin-left:8px">Выйти</button>
+</div></div>
 <div class="st"><div><b id="s1">0</b><span>Всего клиентов</span></div><div><b id="s2">0</b><span>В работе</span></div><div><b id="s3">0</b><span>Сумма открытых, kr</span></div></div>
 <div class="bar"><input id="q" placeholder="Поиск: имя, телефон, адрес…"><select id="fs"></select></div>
-<div id="list"><div class="empty">Загрузка…</div></div></div>
+<div id="list"><div class="empty">Авторизация...</div></div></div>
+
 <div class="ov" id="ov"><form class="md" id="fm"><h2 id="mt">Новый клиент</h2>
 <div><label>Имя *</label><input id="fn" required></div>
 <div class="two"><div><label>Телефон</label><input id="fp" type="tel"></div><div><label>E-mail</label><input id="fe" type="email"></div></div>
@@ -38,49 +63,181 @@ label{font-size:12px;color:var(--mu);display:block;margin-bottom:3px}.empty{text
 <div><label>Следующий контакт</label><input id="fd" type="date"></div>
 <div><label>Заметки</label><textarea id="fx" rows="3"></textarea></div>
 <div class="r"><button type="button" class="b o" id="cx">Отмена</button><button class="b">Сохранить</button></div></form></div>
+
 <div class="ov" id="ov2"><div class="md"><h2>Импорт заявки с сайта</h2><div class="sub">Вставьте текст письма, которое пришло с формы сайта. Данные заполнятся сами.</div><textarea id="it" rows="9" placeholder="Navn/Name: ..."></textarea><div class="r"><button type="button" class="b o" id="ic">Отмена</button><button type="button" class="b" id="ig">Разобрать</button></div></div></div>
-<script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { FIREBASE_CONFIG } from "./firebase-config.js";
+
+const ADMIN_EMAIL = "luxerenovationrealestate@gmail.com";
+
+const app = initializeApp(FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 const ST=["Новая заявка","Осмотр назначен","Предложение отправлено","В работе","Завершён","Отказ"],
 SV=["Внутренняя отделка","Комплексный ремонт","Фасад","Газоблок","Мастер на час","Субподряд","Другое"],
 SO=["Сайт","Телефон","Рекомендация","Субподряд","Другое"];
+
 const $=s=>document.querySelector(s),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const opt=a=>a.map(x=>`<option>${x}</option>`).join("");
+
 $("#fv").innerHTML=opt(SV);$("#ft").innerHTML=opt(ST);$("#fo").innerHTML=opt(SO);
 $("#fs").innerHTML=`<option value="">Все статусы</option>`+opt(ST);
-let rows=[],col=null,editId=null;const fmt=n=>Math.round(n).toLocaleString("da-DK");
-function draw(){const q=$("#q").value.toLowerCase(),fs=$("#fs").value,today=new Date().toISOString().slice(0,10);
-const open=rows.filter(r=>!["Завершён","Отказ"].includes(r.status));
-$("#s1").textContent=rows.length;$("#s2").textContent=rows.filter(r=>r.status=="В работе").length;$("#s3").textContent=fmt(open.reduce((a,r)=>a+(+r.amount||0),0));
-const v=rows.filter(r=>(!fs||r.status==fs)&&(!q||[r.name,r.phone,r.email,r.address,r.notes].join(" ").toLowerCase().includes(q)));
-$("#list").innerHTML=v.length?v.map(r=>`<div class="c"><div class="r"><div><h3>${esc(r.name)}</h3><div class="m">${r.phone?`<a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>`:""}${r.email?` · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:""}</div>${r.address?`<div class="m">📍 ${esc(r.address)}</div>`:""}<div class="m">${esc(r.service)} · ${esc(r.source)}</div></div><div class="amt">${r.amount?fmt(r.amount)+" kr":""}</div></div>
-${r.next?`<div class="m ${r.next<today&&open.includes(r)?"late":""}">📅 Связаться: ${esc(r.next)}${r.next<today&&open.includes(r)?" · просрочено":""}</div>`:""}${r.notes?`<p>${esc(r.notes)}</p>`:""}
-<div class="r" style="margin-top:12px"><select onchange="setSt('${r.id}',this.value)">${ST.map(s=>`<option ${s==r.status?"selected":""}>${s}</option>`).join("")}</select><div><button class="b o s" onclick="edit('${r.id}')">Изменить</button> <button class="b o s" onclick="del(this,'${r.id}')">Удалить</button></div></div></div>`).join(""):`<div class="empty">${rows.length?"Ничего не найдено":"Пока нет клиентов. Нажмите «+ Новый клиент»."}</div>`}
-async function setSt(id,s){try{await col.doc(id).update({status:s})}catch(e){alert("Не удалось сохранить: "+(e.message||e.code))}}
-function del(b,id){if(b.dataset.s){col.doc(id).delete().catch(e=>alert(e.message));return}b.dataset.s=1;b.textContent="Точно?";setTimeout(()=>{b.dataset.s="";b.textContent="Удалить"},3000)}
-function open_(r){editId=r?r.id:null;$("#mt").textContent=r?"Изменить клиента":"Новый клиент";
-const m={fn:"name",fp:"phone",fe:"email",fa:"address",fv:"service",fc:"amount",ft:"status",fo:"source",fd:"next",fx:"notes"};
-for(const k in m)$("#"+k).value=r?(r[m[k]]??""):(k=="ft"?ST[0]:k=="fv"?SV[0]:k=="fo"?SO[0]:"");$("#ov").classList.add("on")}
-function edit(id){open_(rows.find(r=>r.id==id))}
-$("#add").onclick=()=>open_();$("#cx").onclick=()=>$("#ov").classList.remove("on");
-$("#fm").onsubmit=async e=>{e.preventDefault();if(!col)return;
-const d={name:$("#fn").value.trim(),phone:$("#fp").value.trim(),email:$("#fe").value.trim(),address:$("#fa").value.trim(),service:$("#fv").value,amount:+$("#fc").value||0,status:$("#ft").value,source:$("#fo").value,next:$("#fd").value,notes:$("#fx").value.trim()};
-try{if(editId)await col.doc(editId).update(d);else{d.created=Date.now();await col.doc("c"+d.created.toString(36)+Math.random().toString(36).slice(2,6)).set(d)}$("#ov").classList.remove("on")}catch(err){alert("Не удалось сохранить: "+(err.message||err.code))}};
-$("#imp").onclick=()=>{$("#it").value="";$("#ov2").classList.add("on")};$("#ic").onclick=()=>$("#ov2").classList.remove("on");
-$("#ig").onclick=()=>{const t=$("#it").value,g=k=>((t.match(new RegExp("^"+k+"[^:\\n]*:[ \\t]*(.*)$","mi"))||[])[1]||"").trim();
-const ty=g("Type").toLowerCase(),sv=/sub/.test(ty)?"Субподряд":/total|full/.test(ty)?"Комплексный ремонт":/facade/.test(ty)?"Фасад":/gas|aerated/.test(ty)?"Газоблок":/mester|handyman/.test(ty)?"Мастер на час":/indvendig|interior/.test(ty)?"Внутренняя отделка":"Другое";
-const am=((t.match(/(?:Samlet pris inkl\. moms|Total incl\. VAT):[ \t]*([^\n]*)/i)||[])[1]||"").replace(/[^\d]/g,"");
-const body=t.split(/\n\s*\n/).slice(1).join("\n\n").trim();
-$("#ov2").classList.remove("on");open_();
-$("#fn").value=g("Navn");$("#fp").value=g("Telefon");$("#fe").value=g("E-mail");$("#fa").value=g("Adresse");$("#fv").value=sv;$("#fc").value=am;$("#fo").value="Сайт";$("#fx").value=body};
-$("#q").oninput=draw;$("#fs").onchange=draw;
-$("#exp").onclick=async()=>{const dl=await claude.use("downloads");if(!dl)return alert("Экспорт недоступен");
-const H=["Имя","Телефон","E-mail","Адрес","Услуга","Сумма kr","Статус","Источник","Следующий контакт","Заметки"],
-c=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
-const t="\ufeff"+[H.map(c).join(";"),...rows.map(r=>[r.name,r.phone,r.email,r.address,r.service,r.amount,r.status,r.source,r.next,r.notes].map(c).join(";"))].join("\n");
-try{await dl.save({filename:"luxe-clients.csv",data:t})}catch(e){}};
-(async()=>{const db=await claude.use("db");
-if(!db){$("#list").innerHTML='<div class="empty">База недоступна. Откройте страницу под своим аккаунтом Claude.</div>';return}
-col=db.collection("clients");
-col.onSnapshot(s=>{rows=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.created||0)-(a.created||0));draw()},e=>{$("#list").innerHTML='<div class="empty">Нет доступа к базе: '+esc(e.message||e.code)+'</div>'})})();
+
+let rows=[], editId=null, unsubscribe = null;
+const fmt=n=>Math.round(n).toLocaleString("da-DK");
+
+function draw(){
+  const q=$("#q").value.toLowerCase(),fs=$("#fs").value,today=new Date().toISOString().slice(0,10);
+  const open=rows.filter(r=>!["Завершён","Отказ"].includes(r.status));
+  $("#s1").textContent=rows.length;
+  $("#s2").textContent=rows.filter(r=>r.status=="В работе").length;
+  $("#s3").textContent=fmt(open.reduce((a,r)=>a+(+r.amount||0),0));
+  
+  const v=rows.filter(r=>(!fs||r.status==fs)&&(!q||[r.name,r.phone,r.email,r.address,r.notes].join(" ").toLowerCase().includes(q)));
+  
+  $("#list").innerHTML=v.length?v.map(r=>`<div class="c"><div class="r"><div><h3>${esc(r.name)}</h3><div class="m">${r.phone?`<a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>`:""}${r.email?` · <a href="mailto:${esc(r.email)}">${esc(r.email)}</a>`:""}</div>${r.address?`<div class="m">📍 ${esc(r.address)}</div>`:""}<div class="m">${esc(r.service)} · ${esc(r.source)}</div></div><div class="amt">${r.amount?fmt(r.amount)+" kr":""}</div></div>
+  ${r.next?`<div class="m ${r.next<today&&open.includes(r)?"late":""}">📅 Связаться: ${esc(r.next)}${r.next<today&&open.includes(r)?" · просрочено":""}</div>`:""}${r.notes?`<p>${esc(r.notes)}</p>`:""}
+  <div class="r" style="margin-top:12px"><select data-id="${r.id}" class="st-change">${ST.map(s=>`<option ${s==r.status?"selected":""}>${s}</option>`).join("")}</select><div><button class="b o s btn-edit" data-id="${r.id}">Изменить</button> <button class="b o s btn-del" data-id="${r.id}">Удалить</button></div></div></div>`).join(""):`<div class="empty">${rows.length?"Ничего не найдено":"Пока нет клиентов. Нажмите «+ Новый клиент»."}</div>`;
+
+  document.querySelectorAll(".st-change").forEach(el=>{
+    el.onchange = e => setSt(e.target.dataset.id, e.target.value);
+  });
+  document.querySelectorAll(".btn-edit").forEach(el=>{
+    el.onclick = e => edit(e.target.dataset.id);
+  });
+  document.querySelectorAll(".btn-del").forEach(el=>{
+    el.onclick = e => del(e.target, e.target.dataset.id);
+  });
+}
+
+async function setSt(id,s){
+  try{ await updateDoc(doc(db, "clients", id), {status:s}) }
+  catch(e){ alert("Не удалось сохранить: "+(e.message||e.code)) }
+}
+
+function del(b,id){
+  if(b.dataset.s){
+    deleteDoc(doc(db, "clients", id)).catch(e=>alert(e.message));
+    return;
+  }
+  b.dataset.s=1;b.textContent="Точно?";
+  setTimeout(()=>{b.dataset.s="";b.textContent="Удалить"},3000);
+}
+
+function open_(r){
+  editId=r?r.id:null;
+  $("#mt").textContent=r?"Изменить клиента":"Новый клиент";
+  const m={fn:"name",fp:"phone",fe:"email",fa:"address",fv:"service",fc:"amount",ft:"status",fo:"source",fd:"next",fx:"notes"};
+  for(const k in m)$("#"+k).value=r?(r[m[k]]??""):(k=="ft"?ST[0]:k=="fv"?SV[0]:k=="fo"?SO[0]:"");
+  $("#ov").classList.add("on");
+}
+
+function edit(id){ open_(rows.find(r=>r.id==id)) }
+
+$("#add").onclick=()=>open_();
+$("#cx").onclick=()=>$("#ov").classList.remove("on");
+
+$("#fm").onsubmit=async e=>{
+  e.preventDefault();
+  const d={
+    name:$("#fn").value.trim(),
+    phone:$("#fp").value.trim(),
+    email:$("#fe").value.trim(),
+    address:$("#fa").value.trim(),
+    service:$("#fv").value,
+    amount:+$("#fc").value||0,
+    status:$("#ft").value,
+    source:$("#fo").value,
+    next:$("#fd").value,
+    notes:$("#fx").value.trim()
+  };
+  try{
+    if(editId){
+      await updateDoc(doc(db, "clients", editId), d);
+    } else {
+      d.created=Date.now();
+      const newId = "c"+d.created.toString(36)+Math.random().toString(36).slice(2,6);
+      await setDoc(doc(db, "clients", newId), d);
+    }
+    $("#ov").classList.remove("on");
+  } catch(err){
+    alert("Не удалось сохранить: "+(err.message||err.code));
+  }
+};
+
+$("#imp").onclick=()=>{$("#it").value="";$("#ov2").classList.add("on")};
+$("#ic").onclick=()=>$("#ov2").classList.remove("on");
+
+$("#ig").onclick=()=>{
+  const t=$("#it").value,g=k=>((t.match(new RegExp("^"+k+"[^:\\n]*:[ \\t]*(.*)$","mi"))||[])[1]||"").trim();
+  const ty=g("Type").toLowerCase(),sv=/sub/.test(ty)?"Субподряд":/total|full/.test(ty)?"Комплексный ремонт":/facade/.test(ty)?"Фасад":/gas|aerated/.test(ty)?"Газоблок":/mester|handyman/.test(ty)?"Мастер на час":/indvendig|interior/.test(ty)?"Внутренняя отделка":"Другое";
+  const am=((t.match(/(?:Samlet pris inkl\. moms|Total incl\. VAT):[ \t]*([^\n]*)/i)||[])[1]||"").replace(/[^\d]/g,"");
+  const body=t.split(/\n\s*\n/).slice(1).join("\n\n").trim();
+  $("#ov2").classList.remove("on");open_();
+  $("#fn").value=g("Navn");$("#fp").value=g("Telefon");$("#fe").value=g("E-mail");$("#fa").value=g("Adresse");$("#fv").value=sv;$("#fc").value=am;$("#fo").value="Сайт";$("#fx").value=body;
+};
+
+$("#q").oninput=draw;
+$("#fs").onchange=draw;
+
+$("#exp").onclick=()=>{
+  const H=["Имя","Телефон","E-mail","Адрес","Услуга","Сумма kr","Статус","Источник","Следующий контакт","Заметки"],
+  c=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
+  const t="\ufeff"+[H.map(c).join(";"),...rows.map(r=>[r.name,r.phone,r.email,r.address,r.service,r.amount,r.status,r.source,r.next,r.notes].map(c).join(";"))].join("\n");
+  const blob = new Blob([t], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "luxe-clients.csv";
+  link.click();
+};
+
+// Проверка и авторизация через Firebase Auth
+$("#btn-login").onclick = async () => {
+  const provider = new GoogleAuthProvider();
+  $("#auth-err").style.display = "none";
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    $("#auth-err").textContent = "Ошибка входа: " + e.message;
+    $("#auth-err").style.display = "block";
+  }
+};
+
+$("#btn-logout").onclick = () => {
+  signOut(auth);
+};
+
+onAuthStateChanged(auth, user => {
+  if (user) {
+    if (user.email === ADMIN_EMAIL) {
+      $("#auth-block").style.display = "none";
+      if(!unsubscribe) {
+        unsubscribe = onSnapshot(collection(db, "clients"), s => {
+          rows = s.docs.map(d => ({id:d.id, ...d.data()})).sort((a,b)=>(b.created||0)-(a.created||0));
+          draw();
+        }, e => {
+          $("#list").innerHTML = '<div class="empty">Ошибка доступа к базе: ' + esc(e.message) + '</div>';
+        });
+      }
+    } else {
+      signOut(auth);
+      alert("Доступ запрещен! Вы вошли не под аккаунтом администратора.");
+      window.location.href = "index.html";
+    }
+  } else {
+    $("#auth-block").style.display = "flex";
+    if(unsubscribe) { unsubscribe(); unsubscribe = null; }
+    rows = [];
+    draw();
+  }
+});
+
 draw();
-</script></body></html>
+</script>
+</body>
+</html>
