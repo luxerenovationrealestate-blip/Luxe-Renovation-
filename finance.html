@@ -171,16 +171,13 @@ const PIN = "2003";
 const app = initializeApp(FIREBASE_CONFIG);
 const db = getFirestore(app);
 
-// Универсальная функция извлечения значений (работает с обычными данными и REST API)
-function extractVal(val, fallback) {
-  if (val === null || val === undefined) return fallback;
-  if (typeof val === 'object') {
-    if (val.doubleValue !== undefined) return val.doubleValue;
-    if (val.integerValue !== undefined) return val.integerValue;
-    if (val.stringValue !== undefined) return val.stringValue;
-    return fallback;
+// Надежная функция извлечения значений (поддерживает обычный формат и REST API)
+function val(v, def = '') {
+  if (v === null || v === undefined) return def;
+  if (typeof v === 'object') {
+    return v.doubleValue ?? v.integerValue ?? v.stringValue ?? def;
   }
-  return val;
+  return v;
 }
 
 // Auth check
@@ -211,11 +208,11 @@ function initApp() {
       const data = d.data();
       return {
         id: d.id,
-        amount: Number(extractVal(data.amount, 0)),
-        title: String(extractVal(data.title, 'Расход')),
-        cat: String(extractVal(data.cat, 'Прочее')),
-        date: String(extractVal(data.date, new Date().toISOString().substring(0, 10))),
-        receipt: String(extractVal(data.receipt, ''))
+        amount: Number(val(data.amount, 0)),
+        title: String(val(data.title, 'Расход')),
+        cat: String(val(data.cat, 'Прочее')),
+        date: String(val(data.date, new Date().toISOString().substring(0, 10))),
+        receipt: String(val(data.receipt, ''))
       };
     });
     renderData();
@@ -227,9 +224,9 @@ function initApp() {
       const data = d.data();
       return {
         id: d.id,
-        amount: Number(extractVal(data.amount, 0)),
-        title: String(extractVal(data.title, 'Доход')),
-        date: String(extractVal(data.date, '')).substring(0, 10)
+        amount: Number(val(data.amount, 0)),
+        title: String(val(data.title, 'Доход')),
+        date: String(val(data.date, '')).substring(0, 10)
       };
     });
     renderData();
