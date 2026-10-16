@@ -97,19 +97,19 @@ async function analyzeImage(imageUrl) {
   return JSON.parse(jsonClean);
 }
 
-// 4. Сохранение транзакции в Firestore с расчетом налогов
+// 4. Сохранение транзакции в Firestore с актуальными налогами (AM-bidrag 8%, Fradrag 16123, B-skat 36%)
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
-  // Математика: amount = ваша чистая цена (Netto)
   const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0; // +25% Moms заказчика
-  const grossAmount = type === 'income' ? amount + momsAmount : amount; // Итоговый чек
+  const grossAmount = type === 'income' ? amount + momsAmount : amount; 
 
-  // Подоходные налоги с вашей чистой цены (amount):
   const amBidrag = type === 'income' ? Math.round(amount * 0.08 * 100) / 100 : 0; // 8%
-  const baseForBSkat = amount - amBidrag;
-  const bSkat = type === 'income' ? Math.round(baseForBSkat * 0.38 * 100) / 100 : 0; // 38%
-  const takeHome = type === 'income' ? Math.round((baseForBSkat - bSkat) * 100) / 100 : 0;
+  const profitAfterAm = amount - amBidrag;
+  const monthlyFradrag = 16123; // Месячный налоговый вычет
+  const baseForBSkat = Math.max(0, profitAfterAm - monthlyFradrag);
+  const bSkat = type === 'income' ? Math.round(baseForBSkat * 0.36 * 100) / 100 : 0; // 36%
+  const takeHome = type === 'income' ? Math.round((amount - amBidrag - bSkat) * 100) / 100 : 0;
 
   const collectionName = type === 'income' ? 'incomes' : 'expenses';
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}`;
@@ -141,9 +141,9 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
         `🟢 **Доход зафиксирован:**\n💰 +${amount.toLocaleString()} DKK (Ваш доход) — ${title}\n` +
         `🧾 *Чек заказчику (+25% Moms):* ${grossAmount.toLocaleString()} DKK\n\n` +
         `📊 *Налоговая раскладка с ${amount.toLocaleString()} DKK:*\n` +
-        `• Moms заказчика в Skat: ~${momsAmount.toLocaleString()} DKK\n` +
         `• AM-bidrag (8%): ~${amBidrag.toLocaleString()} DKK\n` +
-        `• B-skat (38%): ~${bSkat.toLocaleString()} DKK\n` +
+        `• Вычет (Fradrag): 16.123 DKK / мес.\n` +
+        `• B-skat (36%): ~${bSkat.toLocaleString()} DKK\n` +
         `💵 *Чистыми на руки:* ~${takeHome.toLocaleString()} DKK`
       );
     } else {
@@ -154,7 +154,6 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   return false;
 }
 
-// ВЕБХУК ДЛЯ TELEGRAM
 export default async function handler(req, res) {
   try {
     const body = req.body;
@@ -164,13 +163,9 @@ export default async function handler(req, res) {
 
     const chatId = body.message.chat.id;
 
-    // А. ОБРАБОТКА ГОЛОСОВЫХ СООБЩЕНИЙ
+    // Голосовые
     if (body.message.voice || body.message.audio) {
-      if (!OPENAI_API_KEY) {
-        await sendMessage(chatId, `⚠️ Ошибка: не задан API ключ OpenAI.`);
-        return res.status(200).json({ ok: true });
-      }
-
+      if (!OPENAI_API_KEY) return res.status(200).json({ ok: true });
       const fileId = body.message.voice ? body.message.voice.file_id : body.message.audio.file_id;
       const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
       const fileData = await fileRes.json();
@@ -201,13 +196,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // Б. ОБРАБОТКА ФОТО / ЧЕКОВ / СКРИНШОТОВ
+    // Фото / Чеки
     if (body.message.photo && body.message.photo.length > 0) {
-      if (!OPENAI_API_KEY) {
-        await sendMessage(chatId, `⚠️ Ошибка: не задан API ключ OpenAI.`);
-        return res.status(200).json({ ok: true });
-      }
-
+      if (!OPENAI_API_KEY) return res.status(200).json({ ok: true });
       const photo = body.message.photo[body.message.photo.length - 1];
       const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${photo.file_id}`);
       const fileData = await fileRes.json();
@@ -231,7 +222,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true });
     }
 
-    // В. ОБРАБОТКА ТЕКСТОВЫХ СООБЩЕНИЙ
+    // Текст
     if (body.message.text) {
       const text = body.message.text.trim();
       const lowerText = text.toLowerCase();
@@ -274,6 +265,6 @@ async function sendMomsInfo(chatId) {
               `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
               `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
               `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
-              `💡 Автоматический расчет: Moms (+25%), AM-bidrag (8%) и B-skat (38%)!`;
+              `💡 Актуальные налоговые параметры: Moms (+25% сверху), AM-bidrag (8%), Fradrag (16.123 kr.), B-skat (36%)!`;
   await sendMessage(chatId, msg);
 }
