@@ -24,10 +24,10 @@ h1 { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: var(--g);
 .month-select { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); font-size: 15px; background: #fff; }
 
 /* Financial Cards */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
 .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
 .stat-card small { color: var(--mu); font-size: 13px; font-weight: 500; text-transform: uppercase; }
-.stat-card .amount { font-size: 28px; font-weight: 600; margin-top: 6px; }
+.stat-card .amount { font-size: 26px; font-weight: 600; margin-top: 6px; }
 .stat-card.profit .amount { color: var(--green); }
 .stat-card.loss .amount { color: var(--red); }
 
@@ -86,17 +86,31 @@ th { color: var(--mu); font-weight: 500; }
       <div class="amount" id="total-expense" style="color:var(--red)">0 DKK</div>
     </div>
     <div class="stat-card profit" id="profit-card">
-      <small>Чистая прибыль</small>
+      <small>Валовая прибыль</small>
       <div class="amount" id="net-profit">0 DKK</div>
     </div>
   </div>
 
-  <!-- Блок резерва на Moms (НДС 25%) -->
-  <div class="card" id="moms-reserve-block" style="background: #faf8f5; border-color: var(--gold);">
-    <h3>🇩🇰 Накопительный резерв на Moms (25%)</h3>
-    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 15px;">
-      <span style="color: var(--mu);">Сумма к уплате в Skat за период:</span>
-      <b id="moms-amount-total" style="color: var(--gold); font-size: 20px;">0 DKK</b>
+  <!-- Блок налогов (Moms 25%, AM-bidrag 8%, B-skat 38%) -->
+  <div class="card" style="background: #faf8f5; border-color: var(--gold);">
+    <h3>🇩🇰 Налоги и Резервы (Skattestyrelsen)</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 10px;">
+      <div>
+        <span style="color: var(--mu); font-size: 13px;">Moms (НДС 25%):</span>
+        <div id="moms-amount-total" style="color: var(--gold); font-weight: 600; font-size: 18px;">0 DKK</div>
+      </div>
+      <div>
+        <span style="color: var(--mu); font-size: 13px;">AM-bidrag (8%):</span>
+        <div id="am-tax-total" style="color: #d97706; font-weight: 600; font-size: 18px;">0 DKK</div>
+      </div>
+      <div>
+        <span style="color: var(--mu); font-size: 13px;">A/B-skat (38%):</span>
+        <div id="b-tax-total" style="color: #c53030; font-weight: 600; font-size: 18px;">0 DKK</div>
+      </div>
+      <div style="border-left: 2px solid var(--line); padding-left: 16px;">
+        <span style="color: var(--mu); font-size: 13px;">Чистыми на руки:</span>
+        <div id="clean-income-total" style="color: var(--green); font-weight: 700; font-size: 20px;">0 DKK</div>
+      </div>
     </div>
   </div>
 
@@ -281,11 +295,23 @@ function renderData() {
   const incTotal = combinedIncomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
 
   const net = incTotal - expTotal;
-  const momsTotal = Math.round(incTotal * 0.25);
+  
+  // Расчет налогов по датской модели:
+  const momsTotal = Math.round(incTotal * 0.25); // Moms (25%)
+  const profitBeforeTax = Math.max(0, (incTotal - momsTotal) - expTotal); // База до личных налогов
+  
+  const amBidrag = Math.round(profitBeforeTax * 0.08); // 1. AM-bidrag (8%)
+  const baseForBSkat = profitBeforeTax - amBidrag; // База для B-skat
+  const bSkat = Math.round(baseForBSkat * 0.38); // 2. B-skat (38%)
+  
+  const cleanTakeHome = Math.max(0, profitBeforeTax - amBidrag - bSkat); // Чистый остаток на руки
 
   document.getElementById('total-income').textContent = `${incTotal.toLocaleString()} DKK`;
   document.getElementById('total-expense').textContent = `${expTotal.toLocaleString()} DKK`;
   document.getElementById('moms-amount-total').textContent = `${momsTotal.toLocaleString()} DKK`;
+  document.getElementById('am-tax-total').textContent = `${amBidrag.toLocaleString()} DKK`;
+  document.getElementById('b-tax-total').textContent = `${bSkat.toLocaleString()} DKK`;
+  document.getElementById('clean-income-total').textContent = `${cleanTakeHome.toLocaleString()} DKK`;
   
   const netEl = document.getElementById('net-profit');
   netEl.textContent = `${net.toLocaleString()} DKK`;
