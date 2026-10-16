@@ -311,7 +311,7 @@ function renderData() {
   const netProfit = incTotal - expTotal;
   const taxableProfit = Math.max(0, netProfit);
   
-  // 5. Расчет налогов с учетом Fradrag (16.123 kr)
+  // 5. Расчет налогов (AM-bidrag 8%, затем вычет Fradrag 16.123 kr. и B-skat 36%)
   const amBidrag = Math.round(taxableProfit * 0.08); // AM-bidrag (8%)
   const profitAfterAm = taxableProfit - amBidrag;
   
@@ -351,7 +351,7 @@ function renderData() {
     </tr>
   `).join('');
 
-  const incTable = document.innerHTML = combinedIncomes.map(i => {
+  const incTable = combinedIncomes.map(i => {
     const amt = Number(i.amount || 0);
     const withMoms = Math.round(amt * 1.25);
     return `
