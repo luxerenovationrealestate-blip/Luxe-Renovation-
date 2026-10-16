@@ -95,7 +95,7 @@ th { color: var(--mu); font-weight: 500; }
     </div>
   </div>
 
-  <!-- Блок налогов (Moms +25%, AM-bidrag 8%, B-skat 36% с учетом Fradrag 16.123 kr.) -->
+  <!-- Блок налогов и Резервов -->
   <div class="card" style="background: #faf8f5; border-color: var(--gold);">
     <h3>🇩🇰 Налоги и Резервы (Skattestyrelsen 2026)</h3>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 10px;">
@@ -311,11 +311,11 @@ function renderData() {
   const netProfit = incTotal - expTotal;
   const taxableProfit = Math.max(0, netProfit);
   
-  // 5. Расчет налогов (AM-bidrag 8%, затем вычет Fradrag 16.123 kr. и B-skat 36%)
+  // 5. Расчет налогов с учетом Fradrag (16.123 kr)
   const amBidrag = Math.round(taxableProfit * 0.08); // AM-bidrag (8%)
   const profitAfterAm = taxableProfit - amBidrag;
   
-  const monthlyFradrag = 16123; // Месячный вычет из авансовой справки
+  const monthlyFradrag = 16123; // Месячный необлагаемый вычет
   const baseForBSkat = Math.max(0, profitAfterAm - monthlyFradrag);
   const bSkat = Math.round(baseForBSkat * 0.36); // B-skat (36%)
   
@@ -351,8 +351,7 @@ function renderData() {
     </tr>
   `).join('');
 
-  const incTable = document.getElementById('income-list');
-  incTable.innerHTML = combinedIncomes.map(i => {
+  const incTable = document.innerHTML = combinedIncomes.map(i => {
     const amt = Number(i.amount || 0);
     const withMoms = Math.round(amt * 1.25);
     return `
@@ -364,6 +363,7 @@ function renderData() {
       <td>${i.isCrm ? '-' : `<button class="del-btn" onclick="deleteItem('incomes', '${i.id}')">🗑️</button>`}</td>
     </tr>
   `}).join('');
+  document.getElementById('income-list').innerHTML = incTable;
 }
 
 // Submit Expense
