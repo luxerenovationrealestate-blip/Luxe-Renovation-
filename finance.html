@@ -78,33 +78,41 @@ th { color: var(--mu); font-weight: 500; }
   <!-- Summary Cards -->
   <div class="stats-grid">
     <div class="stat-card">
-      <small>Общий доход</small>
+      <small>Ваш доход (Netto)</small>
       <div class="amount" id="total-income" style="color:var(--green)">0 DKK</div>
+    </div>
+    <div class="stat-card">
+      <small>Чек с Moms (+25%)</small>
+      <div class="amount" id="total-gross" style="color:var(--gold)">0 DKK</div>
     </div>
     <div class="stat-card">
       <small>Общий расход</small>
       <div class="amount" id="total-expense" style="color:var(--red)">0 DKK</div>
     </div>
     <div class="stat-card profit" id="profit-card">
-      <small>Валовая прибыль</small>
+      <small>Прибыль (до налогов)</small>
       <div class="amount" id="net-profit">0 DKK</div>
     </div>
   </div>
 
-  <!-- Блок налогов (AM-bidrag 8%, B-skat 38% без вычета Moms из доходов) -->
+  <!-- Блок налогов (Moms +25% сверху, AM-bidrag 8%, B-skat 38%) -->
   <div class="card" style="background: #faf8f5; border-color: var(--gold);">
-    <h3>🇩🇰 Подоходные налоги и Резервы (Skattestyrelsen)</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 10px;">
+    <h3>🇩🇰 Налоги и Резервы (Skattestyrelsen)</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 10px;">
+      <div>
+        <span style="color: var(--mu); font-size: 13px;">Moms заказчика (+25%):</span>
+        <div id="moms-amount-total" style="color: var(--gold); font-weight: 600; font-size: 18px;">0 DKK</div>
+      </div>
       <div>
         <span style="color: var(--mu); font-size: 13px;">AM-bidrag (8%):</span>
         <div id="am-tax-total" style="color: #d97706; font-weight: 600; font-size: 18px;">0 DKK</div>
       </div>
       <div>
-        <span style="color: var(--mu); font-size: 13px;">A/B-skat (38%):</span>
+        <span style="color: var(--mu); font-size: 13px;">B-skat (38%):</span>
         <div id="b-tax-total" style="color: #c53030; font-weight: 600; font-size: 18px;">0 DKK</div>
       </div>
       <div style="border-left: 2px solid var(--line); padding-left: 16px;">
-        <span style="color: var(--mu); font-size: 13px;">Чистыми на руки:</span>
+        <span style="color: var(--mu); font-size: 13px;">Чистый доход на руки:</span>
         <div id="clean-income-total" style="color: var(--green); font-weight: 700; font-size: 20px;">0 DKK</div>
       </div>
     </div>
@@ -137,7 +145,7 @@ th { color: var(--mu); font-weight: 500; }
         <h3>Внести доход вручную</h3>
         <form id="income-form">
           <input type="text" id="inc-title" placeholder="Описание (например, Аванс за объект)" required>
-          <input type="number" id="inc-amount" placeholder="Сумма (DKK)" required min="1">
+          <input type="number" id="inc-amount" placeholder="Сумма без Moms (DKK)" required min="1">
           <input type="date" id="inc-date" required>
           <button type="submit" class="btn">Добавить доход</button>
         </form>
@@ -171,7 +179,8 @@ th { color: var(--mu); font-weight: 500; }
               <tr>
                 <th>Дата</th>
                 <th>Источник / Описание</th>
-                <th>Сумма</th>
+                <th>Ваш доход</th>
+                <th>Чек (+25% Moms)</th>
                 <th>Действие</th>
               </tr>
             </thead>
@@ -288,29 +297,40 @@ function renderData() {
   }));
 
   const combinedIncomes = [...incomesManual.map(i => ({...i, isCrm: false})), ...crmIncomes];
+  
+  // 1. Ваш чистый доход без Moms (Netto)
   const incTotal = combinedIncomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
+  
+  // 2. Moms (+25%), который платит заказчик
+  const momsTotal = Math.round(incTotal * 0.25);
+  
+  // 3. Полная сумма с заказчика (Gross)
+  const grossTotal = incTotal + momsTotal;
 
-  const net = incTotal - expTotal;
+  // 4. Валовая прибыль (Ваш доход - расходы)
+  const netProfit = incTotal - expTotal;
   
-  // Расчет налогов (без удержания Moms, заказчик платит Moms сверху):
-  const profitBeforeTax = Math.max(0, incTotal - expTotal);
-  
-  const amBidrag = Math.round(profitBeforeTax * 0.08); // AM-bidrag (8%)
-  const baseForBSkat = profitBeforeTax - amBidrag; // База для B-skat
+  // 5. Подоходные налоги с вашей прибыли:
+  const taxableProfit = Math.max(0, netProfit);
+  const amBidrag = Math.round(taxableProfit * 0.08); // AM-bidrag (8%)
+  const baseForBSkat = taxableProfit - amBidrag; // База для B-skat
   const bSkat = Math.round(baseForBSkat * 0.38); // B-skat (38%)
   
-  const cleanTakeHome = Math.max(0, profitBeforeTax - amBidrag - bSkat); // Чистый остаток на руки
+  // 6. Чистыми на руки
+  const cleanTakeHome = Math.max(0, taxableProfit - amBidrag - bSkat);
 
   document.getElementById('total-income').textContent = `${incTotal.toLocaleString()} DKK`;
+  document.getElementById('total-gross').textContent = `${grossTotal.toLocaleString()} DKK`;
   document.getElementById('total-expense').textContent = `${expTotal.toLocaleString()} DKK`;
+  document.getElementById('moms-amount-total').textContent = `${momsTotal.toLocaleString()} DKK`;
   document.getElementById('am-tax-total').textContent = `${amBidrag.toLocaleString()} DKK`;
   document.getElementById('b-tax-total').textContent = `${bSkat.toLocaleString()} DKK`;
   document.getElementById('clean-income-total').textContent = `${cleanTakeHome.toLocaleString()} DKK`;
   
   const netEl = document.getElementById('net-profit');
-  netEl.textContent = `${net.toLocaleString()} DKK`;
+  netEl.textContent = `${netProfit.toLocaleString()} DKK`;
   const pCard = document.getElementById('profit-card');
-  if(net >= 0) {
+  if(netProfit >= 0) {
     pCard.className = "stat-card profit";
     netEl.style.color = "var(--green)";
   } else {
@@ -329,14 +349,18 @@ function renderData() {
   `).join('');
 
   const incTable = document.getElementById('income-list');
-  incTable.innerHTML = combinedIncomes.map(i => `
+  incTable.innerHTML = combinedIncomes.map(i => {
+    const amt = Number(i.amount || 0);
+    const withMoms = Math.round(amt * 1.25);
+    return `
     <tr>
       <td>${i.date}</td>
       <td>${i.title}</td>
-      <td style="color:var(--green); font-weight:600;">+${Number(i.amount).toLocaleString()} DKK</td>
+      <td style="color:var(--green); font-weight:600;">+${amt.toLocaleString()} DKK</td>
+      <td style="color:var(--gold); font-weight:500;">${withMoms.toLocaleString()} DKK</td>
       <td>${i.isCrm ? '-' : `<button class="del-btn" onclick="deleteItem('incomes', '${i.id}')">🗑️</button>`}</td>
     </tr>
-  `).join('');
+  `}).join('');
 }
 
 // Submit Expense
