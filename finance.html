@@ -91,14 +91,10 @@ th { color: var(--mu); font-weight: 500; }
     </div>
   </div>
 
-  <!-- Блок налогов (Moms 25%, AM-bidrag 8%, B-skat 38%) -->
+  <!-- Блок налогов (AM-bidrag 8%, B-skat 38% без вычета Moms из доходов) -->
   <div class="card" style="background: #faf8f5; border-color: var(--gold);">
-    <h3>🇩🇰 Налоги и Резервы (Skattestyrelsen)</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 10px;">
-      <div>
-        <span style="color: var(--mu); font-size: 13px;">Moms (НДС 25%):</span>
-        <div id="moms-amount-total" style="color: var(--gold); font-weight: 600; font-size: 18px;">0 DKK</div>
-      </div>
+    <h3>🇩🇰 Подоходные налоги и Резервы (Skattestyrelsen)</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 10px;">
       <div>
         <span style="color: var(--mu); font-size: 13px;">AM-bidrag (8%):</span>
         <div id="am-tax-total" style="color: #d97706; font-weight: 600; font-size: 18px;">0 DKK</div>
@@ -296,19 +292,17 @@ function renderData() {
 
   const net = incTotal - expTotal;
   
-  // Расчет налогов по датской модели:
-  const momsTotal = Math.round(incTotal * 0.25); // Moms (25%)
-  const profitBeforeTax = Math.max(0, (incTotal - momsTotal) - expTotal); // База до личных налогов
+  // Расчет налогов (без удержания Moms, заказчик платит Moms сверху):
+  const profitBeforeTax = Math.max(0, incTotal - expTotal);
   
-  const amBidrag = Math.round(profitBeforeTax * 0.08); // 1. AM-bidrag (8%)
+  const amBidrag = Math.round(profitBeforeTax * 0.08); // AM-bidrag (8%)
   const baseForBSkat = profitBeforeTax - amBidrag; // База для B-skat
-  const bSkat = Math.round(baseForBSkat * 0.38); // 2. B-skat (38%)
+  const bSkat = Math.round(baseForBSkat * 0.38); // B-skat (38%)
   
   const cleanTakeHome = Math.max(0, profitBeforeTax - amBidrag - bSkat); // Чистый остаток на руки
 
   document.getElementById('total-income').textContent = `${incTotal.toLocaleString()} DKK`;
   document.getElementById('total-expense').textContent = `${expTotal.toLocaleString()} DKK`;
-  document.getElementById('moms-amount-total').textContent = `${momsTotal.toLocaleString()} DKK`;
   document.getElementById('am-tax-total').textContent = `${amBidrag.toLocaleString()} DKK`;
   document.getElementById('b-tax-total').textContent = `${bSkat.toLocaleString()} DKK`;
   document.getElementById('clean-income-total').textContent = `${cleanTakeHome.toLocaleString()} DKK`;
@@ -389,4 +383,3 @@ document.getElementById('income-form').onsubmit = async (e) => {
 </script>
 </body>
 </html>
-
