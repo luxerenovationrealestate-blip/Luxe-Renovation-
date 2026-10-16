@@ -97,16 +97,17 @@ async function analyzeImage(imageUrl) {
   return JSON.parse(jsonClean);
 }
 
-// 4. Сохранение транзакции в Firestore с актуальными налогами (AM-bidrag 8%, Fradrag 16123, B-skat 36%)
+// 4. Сохранение транзакции в Firestore с правильным учетом Fradrag (16.123 DKK)
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
-  const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0; // +25% Moms заказчика
-  const grossAmount = type === 'income' ? amount + momsAmount : amount; 
+  const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0; // Moms +25%
+  const grossAmount = type === 'income' ? amount + momsAmount : amount;
 
+  // Налоги с учетом Fradrag (16.123 DKK/мес)
   const amBidrag = type === 'income' ? Math.round(amount * 0.08 * 100) / 100 : 0; // 8%
   const profitAfterAm = amount - amBidrag;
-  const monthlyFradrag = 16123; // Месячный налоговый вычет
+  const monthlyFradrag = 16123;
   const baseForBSkat = Math.max(0, profitAfterAm - monthlyFradrag);
   const bSkat = type === 'income' ? Math.round(baseForBSkat * 0.36 * 100) / 100 : 0; // 36%
   const takeHome = type === 'income' ? Math.round((amount - amBidrag - bSkat) * 100) / 100 : 0;
@@ -140,9 +141,9 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
       await sendMessage(chatId, 
         `🟢 **Доход зафиксирован:**\n💰 +${amount.toLocaleString()} DKK (Ваш доход) — ${title}\n` +
         `🧾 *Чек заказчику (+25% Moms):* ${grossAmount.toLocaleString()} DKK\n\n` +
-        `📊 *Налоговая раскладка с ${amount.toLocaleString()} DKK:*\n` +
+        `📊 *Налоговая раскладка (с учетом Fradrag 16.123 DKK):*\n` +
         `• AM-bidrag (8%): ~${amBidrag.toLocaleString()} DKK\n` +
-        `• Вычет (Fradrag): 16.123 DKK / мес.\n` +
+        `• Необлагаемый Fradrag: 16.123 DKK / мес.\n` +
         `• B-skat (36%): ~${bSkat.toLocaleString()} DKK\n` +
         `💵 *Чистыми на руки:* ~${takeHome.toLocaleString()} DKK`
       );
@@ -265,6 +266,6 @@ async function sendMomsInfo(chatId) {
               `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
               `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
               `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
-              `💡 Актуальные налоговые параметры: Moms (+25% сверху), AM-bidrag (8%), Fradrag (16.123 kr.), B-skat (36%)!`;
+              `💡 Параметры 2026: Moms +25%, AM-bidrag 8%, Fradrag 16.123 kr./мес., B-skat 36%!`;
   await sendMessage(chatId, msg);
 }
