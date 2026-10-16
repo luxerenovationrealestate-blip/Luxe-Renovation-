@@ -50,7 +50,7 @@ async function parseMultipleTransactions(text) {
       messages: [
         {
           role: 'system',
-          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. В сообщении может быть одна или сразу несколько финансовых операций. Для каждой операции определи тип: "income" (доход, аванс, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки точную сумму (number) и чистое описание (string). Верни строго JSON-массив без лишнего текста, например: [{"type": "income", "title": "Аванс", "amount": 2000}, {"type": "expense", "title": "Краска", "amount": 500}]'
+          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. Определи тип операции: "income" (доход, аванс, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки точную сумму (number) и чистое описание (string). Верни строго JSON-массив: [{"type": "income", "title": "Аванс", "amount": 2000}]'
         },
         { role: 'user', content: text }
       ],
@@ -97,14 +97,14 @@ async function analyzeImage(imageUrl) {
   return JSON.parse(jsonClean);
 }
 
-// 4. Сохранение транзакции в Firestore с правильным учетом Fradrag (16.123 DKK)
+// 4. Сохранение транзакции в Firestore с правильным расчётом B-skat с учётом Fradrag
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
-  const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0; // Moms +25%
-  const grossAmount = type === 'income' ? amount + momsAmount : amount;
+  const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0;
+  const grossAmount = type === 'income' ? amount + momsAmount : amount; 
 
-  // Налоги с учетом Fradrag (16.123 DKK/мес)
+  // Налоговая математика с учётом Fradrag 16.123 DKK
   const amBidrag = type === 'income' ? Math.round(amount * 0.08 * 100) / 100 : 0; // 8%
   const profitAfterAm = amount - amBidrag;
   const monthlyFradrag = 16123;
@@ -141,11 +141,11 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
       await sendMessage(chatId, 
         `🟢 **Доход зафиксирован:**\n💰 +${amount.toLocaleString()} DKK (Ваш доход) — ${title}\n` +
         `🧾 *Чек заказчику (+25% Moms):* ${grossAmount.toLocaleString()} DKK\n\n` +
-        `📊 *Налоговая раскладка (с учетом Fradrag 16.123 DKK):*\n` +
+        `📊 *Налоговая раскладка с ${amount.toLocaleString()} DKK:*\n` +
         `• AM-bidrag (8%): ~${amBidrag.toLocaleString()} DKK\n` +
         `• Необлагаемый Fradrag: 16.123 DKK / мес.\n` +
-        `• B-skat (36%): ~${bSkat.toLocaleString()} DKK\n` +
-        `💵 *Чистыми на руки:* ~${takeHome.toLocaleString()} DKK`
+        `• B-skat (36% с Fradrag): ~${bSkat.toLocaleString()} DKK\n` +
+        `💵 *Чистыми на руки (без учёта расходов):* ~${takeHome.toLocaleString()} DKK`
       );
     } else {
       await sendMessage(chatId, `🔴 **Расход записан:**\n💸 -${amount.toLocaleString()} DKK — ${title}`);
