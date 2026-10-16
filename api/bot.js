@@ -236,3 +236,4 @@ async function sendMomsInfo(chatId) {
               `💡 Автоматический расчет: Moms 25%, AM-bidrag 8% и B-skat 38%!`;
   await sendMessage(chatId, msg);
 }
+
