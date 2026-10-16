@@ -97,18 +97,15 @@ async function analyzeImage(imageUrl) {
   return JSON.parse(jsonClean);
 }
 
-// 4. Сохранение транзакции в Firestore с расчетом Moms (25%), AM-bidrag (8%) и B-skat (38%)
+// 4. Сохранение транзакции в Firestore без удержания Moms (так как заказчик платит Moms сверху)
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
-  const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0;
-  const netIncome = amount - momsAmount;
-  
-  const amBidrag = type === 'income' ? Math.round(netIncome * 0.08 * 100) / 100 : 0;
-  const baseForBSkat = netIncome - amBidrag;
+  const amBidrag = type === 'income' ? Math.round(amount * 0.08 * 100) / 100 : 0;
+  const baseForBSkat = amount - amBidrag;
   const bSkat = type === 'income' ? Math.round(baseForBSkat * 0.38 * 100) / 100 : 0;
   
-  const takeHome = type === 'income' ? Math.round((netIncome - amBidrag - bSkat) * 100) / 100 : 0;
+  const takeHome = type === 'income' ? Math.round((amount - amBidrag - bSkat) * 100) / 100 : 0;
 
   const collectionName = type === 'income' ? 'incomes' : 'expenses';
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}`;
@@ -122,7 +119,6 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
       created: { stringValue: Date.now().toString() },
       chatId: { stringValue: chatId.toString() },
       receipt: { stringValue: receiptUrl },
-      moms: { doubleValue: momsAmount },
       amBidrag: { doubleValue: amBidrag },
       bSkat: { doubleValue: bSkat }
     }
@@ -139,7 +135,6 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
       await sendMessage(chatId, 
         `🟢 **Доход зафиксирован:**\n💰 +${amount.toLocaleString()} DKK — ${title}\n\n` +
         `📊 *Налоговая раскладка:*\n` +
-        `• Moms (25%): ~${momsAmount.toLocaleString()} DKK\n` +
         `• AM-bidrag (8%): ~${amBidrag.toLocaleString()} DKK\n` +
         `• B-skat (38%): ~${bSkat.toLocaleString()} DKK\n` +
         `💵 *Чистыми на руки:* ~${takeHome.toLocaleString()} DKK`
@@ -233,7 +228,6 @@ async function sendMomsInfo(chatId) {
               `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
               `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
               `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
-              `💡 Автоматический расчет: Moms 25%, AM-bidrag 8% и B-skat 38%!`;
+              `💡 Учет доходов идет напрямую в базу, расчет подоходного налога: AM-bidrag 8% и B-skat 38%!`;
   await sendMessage(chatId, msg);
 }
-
