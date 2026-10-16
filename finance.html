@@ -95,9 +95,9 @@ th { color: var(--mu); font-weight: 500; }
     </div>
   </div>
 
-  <!-- Блок налогов (Moms +25% сверху, AM-bidrag 8%, B-skat 38%) -->
+  <!-- Блок налогов (Moms +25%, AM-bidrag 8%, B-skat 36% с учетом Fradrag 16.123 kr.) -->
   <div class="card" style="background: #faf8f5; border-color: var(--gold);">
-    <h3>🇩🇰 Налоги и Резервы (Skattestyrelsen)</h3>
+    <h3>🇩🇰 Налоги и Резервы (Skattestyrelsen 2026)</h3>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 10px;">
       <div>
         <span style="color: var(--mu); font-size: 13px;">Moms заказчика (+25%):</span>
@@ -108,7 +108,7 @@ th { color: var(--mu); font-weight: 500; }
         <div id="am-tax-total" style="color: #d97706; font-weight: 600; font-size: 18px;">0 DKK</div>
       </div>
       <div>
-        <span style="color: var(--mu); font-size: 13px;">B-skat (38%):</span>
+        <span style="color: var(--mu); font-size: 13px;">B-skat (36% с Fradrag):</span>
         <div id="b-tax-total" style="color: #c53030; font-weight: 600; font-size: 18px;">0 DKK</div>
       </div>
       <div style="border-left: 2px solid var(--line); padding-left: 16px;">
@@ -298,23 +298,26 @@ function renderData() {
 
   const combinedIncomes = [...incomesManual.map(i => ({...i, isCrm: false})), ...crmIncomes];
   
-  // 1. Ваш чистый доход без Moms (Netto)
+  // 1. Чистый доход (Netto)
   const incTotal = combinedIncomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
   
-  // 2. Moms (+25%), который платит заказчик
+  // 2. Moms (+25%), который оплачивает заказчик
   const momsTotal = Math.round(incTotal * 0.25);
   
   // 3. Полная сумма с заказчика (Gross)
   const grossTotal = incTotal + momsTotal;
 
-  // 4. Валовая прибыль (Ваш доход - расходы)
+  // 4. Прибыль до налогов (Ваш доход - расходы)
   const netProfit = incTotal - expTotal;
-  
-  // 5. Подоходные налоги с вашей прибыли:
   const taxableProfit = Math.max(0, netProfit);
+  
+  // 5. Расчет налогов (AM-bidrag 8%, затем вычет Fradrag 16.123 kr. и B-skat 36%)
   const amBidrag = Math.round(taxableProfit * 0.08); // AM-bidrag (8%)
-  const baseForBSkat = taxableProfit - amBidrag; // База для B-skat
-  const bSkat = Math.round(baseForBSkat * 0.38); // B-skat (38%)
+  const profitAfterAm = taxableProfit - amBidrag;
+  
+  const monthlyFradrag = 16123; // Месячный вычет из авансовой справки
+  const baseForBSkat = Math.max(0, profitAfterAm - monthlyFradrag);
+  const bSkat = Math.round(baseForBSkat * 0.36); // B-skat (36%)
   
   // 6. Чистыми на руки
   const cleanTakeHome = Math.max(0, taxableProfit - amBidrag - bSkat);
