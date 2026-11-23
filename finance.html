@@ -50,6 +50,8 @@ th { color: var(--mu); font-weight: 500; }
 .receipt-img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; cursor: pointer; }
 .del-btn { background: none; border: 0; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 4px; }
 .del-btn:hover { background: #fee2e2; }
+.preview-box { background: #faf8f5; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--mu); line-height: 1.5; }
+.preview-box b { color: var(--tx); }
 </style>
 </head>
 <body>
@@ -70,7 +72,7 @@ th { color: var(--mu); font-weight: 500; }
   <header>
     <div>
       <h1>Финансовая аналитика</h1>
-      <small style="color:var(--mu)">Luxe Renovation Real Estate</small>
+      <small style="color:var(--mu)">Luxe Renovation · Lyngbyvej 83A, 2100 København Ø</small>
     </div>
     <input type="month" id="month-filter" class="month-select">
   </header>
@@ -78,54 +80,46 @@ th { color: var(--mu); font-weight: 500; }
   <!-- Summary Cards -->
   <div class="stats-grid">
     <div class="stat-card">
-      <small>Ваш доход (Netto)</small>
+      <small>Чистая сумма в фактуру</small>
       <div class="amount" id="total-income" style="color:var(--green)">0 DKK</div>
     </div>
     <div class="stat-card">
-      <small>Чек с Moms (+25%)</small>
-      <div class="amount" id="total-gross" style="color:var(--gold)">0 DKK</div>
+      <small>Дополнительный Moms (+25%)</small>
+      <div class="amount" id="moms-amount-total" style="color:var(--gold)">0 DKK</div>
     </div>
     <div class="stat-card">
-      <small>Общий расход</small>
-      <div class="amount" id="total-expense" style="color:var(--red)">0 DKK</div>
+      <small>Итого с Moms (+25%)</small>
+      <div class="amount" id="total-gross" style="color:var(--g)">0 DKK</div>
     </div>
     <div class="stat-card profit" id="profit-card">
-      <small>Прибыль (до налогов)</small>
+      <small>Чистая сумма после расходов</small>
       <div class="amount" id="net-profit">0 DKK</div>
     </div>
   </div>
 
-  <!-- Блок налогов и Резервов -->
-  <div class="card" style="background: #faf8f5; border-color: var(--gold);">
-    <h3>🇩🇰 Налоги и Резервы (Skattestyrelsen 2026)</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 10px;">
-      <div>
-        <span style="color: var(--mu); font-size: 13px;">Moms заказчика (+25%):</span>
-        <div id="moms-amount-total" style="color: var(--gold); font-weight: 600; font-size: 18px;">0 DKK</div>
-      </div>
-      <div>
-        <span style="color: var(--mu); font-size: 13px;">AM-bidrag (8%):</span>
-        <div id="am-tax-total" style="color: #d97706; font-weight: 600; font-size: 18px;">0 DKK</div>
-      </div>
-      <div>
-        <span style="color: var(--mu); font-size: 13px;">B-skat (36% с Fradrag):</span>
-        <div id="b-tax-total" style="color: #c53030; font-weight: 600; font-size: 18px;">0 DKK</div>
-      </div>
-      <div style="border-left: 2px solid var(--line); padding-left: 16px;">
-        <span style="color: var(--mu); font-size: 13px;">Чистый доход на руки:</span>
-        <div id="clean-income-total" style="color: var(--green); font-weight: 700; font-size: 20px;">0 DKK</div>
-      </div>
-    </div>
-  </div>
-
   <div class="grid-2">
-    <!-- Expense Form -->
+    <!-- Forms -->
     <div>
+      <div class="card">
+        <h3>Внести доход / Фактуру</h3>
+        <form id="income-form">
+          <input type="text" id="inc-title" placeholder="Описание (например, Фактура за объект)" required>
+          <input type="number" id="inc-amount" placeholder="Чистая сумма в фактуру (DKK)" required min="1" step="any">
+          <div class="preview-box" id="inc-preview">
+            Чистая сумма: <b>0 DKK</b><br>
+            Доп. Moms (+25%): <b>0 DKK</b><br>
+            Итого с Moms: <b>0 DKK</b>
+          </div>
+          <input type="date" id="inc-date" required>
+          <button type="submit" class="btn">Добавить доход</button>
+        </form>
+      </div>
+
       <div class="card">
         <h3>Внести расход / Чек</h3>
         <form id="expense-form">
           <input type="text" id="ex-title" placeholder="Описание (например, Краска Flügger)" required>
-          <input type="number" id="ex-amount" placeholder="Сумма (DKK)" required min="1">
+          <input type="number" id="ex-amount" placeholder="Сумма (DKK)" required min="1" step="any">
           <select id="ex-cat" required>
             <option value="">Выберите категорию...</option>
             <option value="Материалы">Материалы</option>
@@ -140,20 +134,29 @@ th { color: var(--mu); font-weight: 500; }
           <button type="submit" class="btn btn-gold">Сохранить расход</button>
         </form>
       </div>
-
-      <div class="card">
-        <h3>Внести доход вручную</h3>
-        <form id="income-form">
-          <input type="text" id="inc-title" placeholder="Описание (например, Аванс за объект)" required>
-          <input type="number" id="inc-amount" placeholder="Сумма без Moms (DKK)" required min="1">
-          <input type="date" id="inc-date" required>
-          <button type="submit" class="btn">Добавить доход</button>
-        </form>
-      </div>
     </div>
 
     <!-- History Tables -->
     <div>
+      <div class="card">
+        <h3>Доходы за месяц</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Источник / Описание</th>
+                <th>Чистая сумма</th>
+                <th>Moms (+25%)</th>
+                <th>Итого с Moms</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody id="income-list"></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card">
         <h3>История расходов</h3>
         <div style="overflow-x:auto;">
@@ -167,24 +170,6 @@ th { color: var(--mu); font-weight: 500; }
               </tr>
             </thead>
             <tbody id="expenses-list"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Доходы за месяц</h3>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Дата</th>
-                <th>Источник / Описание</th>
-                <th>Ваш доход</th>
-                <th>Чек (+25% Moms)</th>
-                <th>Действие</th>
-              </tr>
-            </thead>
-            <tbody id="income-list"></tbody>
           </table>
         </div>
       </div>
@@ -223,6 +208,21 @@ function val(v, def = '') {
   return v;
 }
 
+function fmt(num) {
+  return Number(num || 0).toLocaleString('da-DK', { maximumFractionDigits: 2 });
+}
+
+function updateIncomePreview() {
+  const base = Number(document.getElementById('inc-amount').value) || 0;
+  const moms = Math.round(base * 0.25 * 100) / 100;
+  const total = Math.round((base + moms) * 100) / 100;
+  document.getElementById('inc-preview').innerHTML = `
+    Чистая сумма: <b>${fmt(base)} DKK</b><br>
+    Доп. Moms (+25%): <b>${fmt(moms)} DKK</b><br>
+    Итого с Moms: <b>${fmt(total)} DKK</b>
+  `;
+}
+
 let allExpenses = [], allIncomes = [], crmClients = [];
 
 function initApp() {
@@ -232,6 +232,8 @@ function initApp() {
   document.getElementById('inc-date').valueAsDate = today;
 
   document.getElementById('month-filter').onchange = renderData;
+  document.getElementById('inc-amount').oninput = updateIncomePreview;
+  updateIncomePreview();
 
   // Sync Expenses
   onSnapshot(collection(db, "expenses"), (snap) => {
@@ -278,12 +280,12 @@ window.deleteItem = async function(col, id) {
 
 function renderData() {
   const selectedMonth = document.getElementById('month-filter').value;
-  
+
   const expenses = allExpenses.filter(e => e.date && e.date.startsWith(selectedMonth));
   const expTotal = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
   const incomesManual = allIncomes.filter(i => i.date && i.date.startsWith(selectedMonth));
-  
+
   const crmIncomes = crmClients.filter(c => {
     if(!c.created) return false;
     const d = new Date(c.created).toISOString().substring(0,7);
@@ -292,48 +294,32 @@ function renderData() {
     id: c.id,
     date: new Date(c.created).toISOString().substring(0,10),
     title: `Заявка CRM: ${c.name || 'Клиент'} (${c.service || 'Услуга'})`,
-    amount: c.amount || 0,
+    amount: Number(c.amount || 0),
     isCrm: true
   }));
 
   const combinedIncomes = [...incomesManual.map(i => ({...i, isCrm: false})), ...crmIncomes];
-  
-  // 1. Чистый доход (Netto)
+
+  // 1. Чистая сумма в фактуру
   const incTotal = combinedIncomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-  
-  // 2. Moms (+25%), который оплачивает заказчик
-  const momsTotal = Math.round(incTotal * 0.25);
-  
-  // 3. Полная сумма с заказчика (Gross)
-  const grossTotal = incTotal + momsTotal;
 
-  // 4. Прибыль до налогов (Ваш доход - расходы)
-  const netProfit = incTotal - expTotal;
-  const taxableProfit = Math.max(0, netProfit);
-  
-  // 5. Расчет налогов (AM-bidrag 8%, затем вычет Fradrag 16.123 kr. и B-skat 36%)
-  const amBidrag = Math.round(taxableProfit * 0.08); // AM-bidrag (8%)
-  const profitAfterAm = taxableProfit - amBidrag;
-  
-  const monthlyFradrag = 16123; // Месячный необлагаемый вычет
-  const baseForBSkat = Math.max(0, profitAfterAm - monthlyFradrag);
-  const bSkat = Math.round(baseForBSkat * 0.36); // B-skat (36%)
-  
-  // 6. Чистыми на руки
-  const cleanTakeHome = Math.max(0, taxableProfit - amBidrag - bSkat);
+  // 2. Дополнительный Moms (+25%)
+  const momsTotal = Math.round(incTotal * 0.25 * 100) / 100;
 
-  document.getElementById('total-income').textContent = `${incTotal.toLocaleString()} DKK`;
-  document.getElementById('total-gross').textContent = `${grossTotal.toLocaleString()} DKK`;
-  document.getElementById('total-expense').textContent = `${expTotal.toLocaleString()} DKK`;
-  document.getElementById('moms-amount-total').textContent = `${momsTotal.toLocaleString()} DKK`;
-  document.getElementById('am-tax-total').textContent = `${amBidrag.toLocaleString()} DKK`;
-  document.getElementById('b-tax-total').textContent = `${bSkat.toLocaleString()} DKK`;
-  document.getElementById('clean-income-total').textContent = `${cleanTakeHome.toLocaleString()} DKK`;
-  
+  // 3. Итого с Moms (+25%)
+  const grossTotal = Math.round((incTotal + momsTotal) * 100) / 100;
+
+  // 4. Чистая сумма после расходов
+  const netAfterExp = Math.round((incTotal - expTotal) * 100) / 100;
+
+  document.getElementById('total-income').textContent = `${fmt(incTotal)} DKK`;
+  document.getElementById('moms-amount-total').textContent = `${fmt(momsTotal)} DKK`;
+  document.getElementById('total-gross').textContent = `${fmt(grossTotal)} DKK`;
+
   const netEl = document.getElementById('net-profit');
-  netEl.textContent = `${netProfit.toLocaleString()} DKK`;
+  netEl.textContent = `${fmt(netAfterExp)} DKK`;
   const pCard = document.getElementById('profit-card');
-  if(netProfit >= 0) {
+  if(netAfterExp >= 0) {
     pCard.className = "stat-card profit";
     netEl.style.color = "var(--green)";
   } else {
@@ -346,20 +332,22 @@ function renderData() {
     <tr>
       <td>${e.date}</td>
       <td><b>${e.title}</b><br><span class="badge">${e.cat}</span></td>
-      <td style="color:var(--red); font-weight:600;">-${Number(e.amount).toLocaleString()} DKK</td>
+      <td style="color:var(--red); font-weight:600;">-${fmt(e.amount)} DKK</td>
       <td><button class="del-btn" onclick="deleteItem('expenses', '${e.id}')">🗑️</button></td>
     </tr>
   `).join('');
 
   const incTable = combinedIncomes.map(i => {
     const amt = Number(i.amount || 0);
-    const withMoms = Math.round(amt * 1.25);
+    const moms = Math.round(amt * 0.25 * 100) / 100;
+    const total = Math.round((amt + moms) * 100) / 100;
     return `
     <tr>
       <td>${i.date}</td>
       <td>${i.title}</td>
-      <td style="color:var(--green); font-weight:600;">+${amt.toLocaleString()} DKK</td>
-      <td style="color:var(--gold); font-weight:500;">${withMoms.toLocaleString()} DKK</td>
+      <td style="color:var(--green); font-weight:600;">${fmt(amt)} DKK</td>
+      <td style="color:var(--gold); font-weight:500;">+${fmt(moms)} DKK</td>
+      <td style="font-weight:600;">${fmt(total)} DKK</td>
       <td>${i.isCrm ? '-' : `<button class="del-btn" onclick="deleteItem('incomes', '${i.id}')">🗑️</button>`}</td>
     </tr>
   `}).join('');
@@ -406,6 +394,7 @@ document.getElementById('income-form').onsubmit = async (e) => {
   await addDoc(collection(db, "incomes"), rec);
   e.target.reset();
   document.getElementById('inc-date').valueAsDate = new Date();
+  updateIncomePreview();
 };
 </script>
 </body>
