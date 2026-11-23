@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Luxe Renovation – Финансы & Аналитика</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Luxe Renovation – Финансы & Авто-Бухгалтер SKAT</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root { --bg:#f4f1ea; --card:#ffffff; --line:#e2dbc8; --tx:#1c2622; --mu:#6b7280; --g:#12302a; --gold:#a8844a; --green:#10b981; --red:#ef4444; }
 * { box-sizing: border-box; font-family: Inter, sans-serif; }
 body { margin: 0; background: var(--bg); color: var(--tx); padding: 20px; }
-.container { max-width: 1000px; margin: 0 auto; }
+.container { max-width: 1060px; margin: 0 auto; }
 
 /* Auth Lock */
 #auth-modal { position: fixed; inset: 0; background: var(--g); display: flex; align-items: center; justify-content: center; z-index: 999; }
@@ -19,17 +19,40 @@ body { margin: 0; background: var(--bg); color: var(--tx); padding: 20px; }
 .auth-box button { width: 100%; background: var(--g); color: #fff; border: 0; padding: 12px; border-radius: 10px; font-weight: 500; cursor: pointer; margin-top: 8px; }
 
 /* Header & Nav */
-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
 h1 { font-family: 'Cormorant Garamond', serif; font-size: 32px; color: var(--g); margin: 0; }
 .month-select { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); font-size: 15px; background: #fff; }
 
 /* Financial Cards */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
 .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; }
-.stat-card small { color: var(--mu); font-size: 13px; font-weight: 500; text-transform: uppercase; }
-.stat-card .amount { font-size: 26px; font-weight: 600; margin-top: 6px; }
+.stat-card small { color: var(--mu); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+.stat-card .amount { font-size: 25px; font-weight: 700; margin-top: 6px; }
 .stat-card.profit .amount { color: var(--green); }
 .stat-card.loss .amount { color: var(--red); }
+
+/* SKAT Auto-Accountant Block */
+.skat-panel { background: #12302a; color: #f4ecd9; border-radius: 20px; padding: 24px; margin-bottom: 28px; box-shadow: 0 16px 36px rgba(18,48,42,0.18); }
+.skat-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; border-bottom: 1px solid rgba(255,255,255,0.14); padding-bottom: 16px; margin-bottom: 18px; }
+.skat-head h2 { font-family: 'Cormorant Garamond', serif; font-size: 28px; margin: 0; color: #e3c585; }
+.skat-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #f4ecd9; padding: 8px 14px; border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.seg-btn.active { background: #a8844a; border-color: #a8844a; color: #fff; }
+.skat-select { background: #1a3d35; color: #f4ecd9; border: 1px solid rgba(255,255,255,0.22); border-radius: 10px; padding: 8px 12px; font-size: 13px; width: auto; }
+.reserve-input-wrap { display: flex; align-items: center; gap: 6px; background: #1a3d35; border: 1px solid rgba(255,255,255,0.22); border-radius: 10px; padding: 5px 10px; font-size: 13px; }
+.reserve-input-wrap input { width: 54px; padding: 3px 6px; text-align: center; background: #12302a; color: #e3c585; border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; font-weight: 600; }
+
+.skat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.skat-box { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 16px; }
+.skat-box small { display: block; color: #b9c8bf; font-size: 12px; margin-bottom: 4px; }
+.skat-box .val { font-size: 22px; font-weight: 700; color: #fff; }
+.skat-box .sub { display: block; font-size: 12px; color: #b9c8bf; margin-top: 4px; }
+.skat-box.highlight { background: rgba(168,132,74,0.18); border-color: #d9b877; }
+.skat-box.safe { background: rgba(16,185,129,0.16); border-color: #34d399; }
+
+.skat-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.14); font-size: 13px; color: #c9d4cc; }
+.copy-btn { background: #e3c585; color: #12302a; border: 0; padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; }
+.copy-btn:hover { opacity: 0.92; }
 
 /* Forms & Tables */
 .grid-2 { display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; }
@@ -47,7 +70,6 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 10px; border-bottom: 1px solid var(--line); text-align: left; }
 th { color: var(--mu); font-weight: 500; }
 .badge { padding: 3px 8px; border-radius: 6px; font-size: 12px; background: #eee; }
-.receipt-img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; cursor: pointer; }
 .del-btn { background: none; border: 0; color: var(--red); cursor: pointer; font-size: 16px; padding: 4px 8px; border-radius: 4px; }
 .del-btn:hover { background: #fee2e2; }
 .preview-box { background: #faf8f5; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--mu); line-height: 1.5; }
@@ -72,15 +94,18 @@ th { color: var(--mu); font-weight: 500; }
   <header>
     <div>
       <h1>Финансовая аналитика</h1>
-      <small style="color:var(--mu)">Luxe Renovation · Lyngbyvej 83A, 2100 København Ø</small>
+      <small style="color:var(--mu)">Luxe Renovation · CVR 46769074 · Lyngbyvej 83A, 2100 København Ø</small>
     </div>
-    <input type="month" id="month-filter" class="month-select">
+    <div>
+      <small style="display:block; color:var(--mu); font-size:11px; margin-bottom:4px;">Текущий месяц (операции):</small>
+      <input type="month" id="month-filter" class="month-select">
+    </div>
   </header>
 
-  <!-- Summary Cards -->
+  <!-- Monthly Summary Cards -->
   <div class="stats-grid">
     <div class="stat-card">
-      <small>Чистая сумма в фактуру</small>
+      <small>Чистая сумма в фактуру (мес.)</small>
       <div class="amount" id="total-income" style="color:var(--green)">0 DKK</div>
     </div>
     <div class="stat-card">
@@ -94,6 +119,55 @@ th { color: var(--mu); font-weight: 500; }
     <div class="stat-card profit" id="profit-card">
       <small>Чистая сумма после расходов</small>
       <div class="amount" id="net-profit">0 DKK</div>
+    </div>
+  </div>
+
+  <!-- АВТО-БУХГАЛТЕР SKAT (Квартал / Полугодие + Налоговый резерв) -->
+  <div class="skat-panel">
+    <div class="skat-head">
+      <div>
+        <h2>🇩🇰 Авто-Бухгалтер SKAT (TastSelv Erhverv)</h2>
+        <small style="color:#b9c8bf">Автоматический расчёт Moms, налогового резерва и безопасного остатка</small>
+      </div>
+      <div class="skat-controls">
+        <button type="button" class="seg-btn active" id="mode-quarter">Раз в квартал</button>
+        <button type="button" class="seg-btn" id="mode-half">Раз в полгода</button>
+        <select id="skat-period" class="skat-select"></select>
+        <select id="skat-year" class="skat-select"></select>
+        <div class="reserve-input-wrap" title="Процент от чистой прибыли, который откладывается на подоходный налог (AM-bidrag + B-skat)">
+          <span>Резерв налога:</span>
+          <input type="number" id="tax-reserve-pct" value="40" min="0" max="70" step="1">
+          <span>%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="skat-grid">
+      <div class="skat-box">
+        <small>1. Оборот без Moms (Rubrik / Boks)</small>
+        <div class="val" id="sk-rev">0 DKK</div>
+        <span class="sub" id="sk-exp-sub">Расходы без Moms: 0 DKK</span>
+      </div>
+      <div class="skat-box highlight">
+        <small>2. Moms к уплате в SKAT</small>
+        <div class="val" id="sk-moms-due" style="color:#e3c585">0 DKK</div>
+        <span class="sub" id="sk-moms-detail">Salgsmoms 0 − Købsmoms 0</span>
+      </div>
+      <div class="skat-box">
+        <small>3. Отложить на подоходный налог (<span id="sk-pct-label">40</span>%)</small>
+        <div class="val" id="sk-tax-reserve" style="color:#fca5a5">0 DKK</div>
+        <span class="sub" id="sk-profit-sub">С чистой прибыли: 0 DKK</span>
+      </div>
+      <div class="skat-box safe">
+        <small>4. Безопасно можно забрать себе</small>
+        <div class="val" id="sk-safe-take" style="color:#6ee7b7">0 DKK</div>
+        <span class="sub">После уплаты Moms и резерва налогов</span>
+      </div>
+    </div>
+
+    <div class="skat-footer">
+      <div id="sk-deadline">📅 Срок подачи и оплаты Moms в SKAT: —</div>
+      <button type="button" class="copy-btn" id="copy-skat-btn">📋 Скопировать отчёт для SKAT</button>
     </div>
   </div>
 
@@ -119,7 +193,7 @@ th { color: var(--mu); font-weight: 500; }
         <h3>Внести расход / Чек</h3>
         <form id="expense-form">
           <input type="text" id="ex-title" placeholder="Описание (например, Краска Flügger)" required>
-          <input type="number" id="ex-amount" placeholder="Сумма (DKK)" required min="1" step="any">
+          <input type="number" id="ex-amount" placeholder="Сумма по чеку с Moms (DKK)" required min="1" step="any">
           <select id="ex-cat" required>
             <option value="">Выберите категорию...</option>
             <option value="Материалы">Материалы</option>
@@ -158,7 +232,7 @@ th { color: var(--mu); font-weight: 500; }
       </div>
 
       <div class="card">
-        <h3>История расходов</h3>
+        <h3>История расходов за месяц</h3>
         <div style="overflow-x:auto;">
           <table>
             <thead>
@@ -188,7 +262,6 @@ const app = initializeApp(FIREBASE_CONFIG);
 const db = getFirestore(app);
 window.db = db;
 
-// Проверка PIN-кода
 document.getElementById('pin-btn').onclick = () => {
   const input = document.getElementById('pin-input').value;
   if(input === PIN) {
@@ -224,6 +297,72 @@ function updateIncomePreview() {
 }
 
 let allExpenses = [], allIncomes = [], crmClients = [];
+let skatMode = localStorage.getItem('luxe_skat_mode') || 'quarter'; // 'quarter' | 'half'
+let lastSkatReportText = '';
+
+function populateSkatSelectors() {
+  const today = new Date();
+  const curYear = today.getFullYear();
+  const yearSel = document.getElementById('skat-year');
+  const periodSel = document.getElementById('skat-period');
+
+  if (!yearSel.options.length) {
+    [curYear - 1, curYear, curYear + 1].forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = `${y} год`;
+      if (y === curYear) opt.selected = true;
+      yearSel.appendChild(opt);
+    });
+  }
+
+  const m = today.getMonth() + 1;
+  periodSel.innerHTML = '';
+  if (skatMode === 'quarter') {
+    const quarters = [
+      { v: 'Q1', label: 'Q1 (Янв — Мар)' },
+      { v: 'Q2', label: 'Q2 (Апр — Июн)' },
+      { v: 'Q3', label: 'Q3 (Июл — Сен)' },
+      { v: 'Q4', label: 'Q4 (Окт — Дек)' }
+    ];
+    const curQ = `Q${Math.ceil(m / 3)}`;
+    quarters.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q.v;
+      opt.textContent = q.label;
+      if (q.v === curQ) opt.selected = true;
+      periodSel.appendChild(opt);
+    });
+  } else {
+    const halves = [
+      { v: 'H1', label: '1-е полугодие (Янв — Июн)' },
+      { v: 'H2', label: '2-е полугодие (Июл — Дек)' }
+    ];
+    const curH = m <= 6 ? 'H1' : 'H2';
+    halves.forEach(h => {
+      const opt = document.createElement('option');
+      opt.value = h.v;
+      opt.textContent = h.label;
+      if (h.v === curH) opt.selected = true;
+      periodSel.appendChild(opt);
+    });
+  }
+
+  document.getElementById('mode-quarter').classList.toggle('active', skatMode === 'quarter');
+  document.getElementById('mode-half').classList.toggle('active', skatMode === 'half');
+}
+
+function getPeriodRange(year, period) {
+  const map = {
+    Q1: { months: ['01','02','03'], deadline: `1 июня ${year}` },
+    Q2: { months: ['04','05','06'], deadline: `1 сентября ${year}` },
+    Q3: { months: ['07','08','09'], deadline: `1 декабря ${year}` },
+    Q4: { months: ['10','11','12'], deadline: `1 марта ${Number(year) + 1}` },
+    H1: { months: ['01','02','03','04','05','06'], deadline: `1 сентября ${year}` },
+    H2: { months: ['07','08','09','10','11','12'], deadline: `1 марта ${Number(year) + 1}` }
+  };
+  return map[period] || map.Q1;
+}
 
 function initApp() {
   const today = new Date();
@@ -231,11 +370,49 @@ function initApp() {
   document.getElementById('ex-date').valueAsDate = today;
   document.getElementById('inc-date').valueAsDate = today;
 
+  const savedPct = localStorage.getItem('luxe_tax_pct');
+  if (savedPct !== null) document.getElementById('tax-reserve-pct').value = savedPct;
+
+  populateSkatSelectors();
+
   document.getElementById('month-filter').onchange = renderData;
   document.getElementById('inc-amount').oninput = updateIncomePreview;
+  document.getElementById('skat-period').onchange = renderSkatReport;
+  document.getElementById('skat-year').onchange = renderSkatReport;
+  document.getElementById('tax-reserve-pct').oninput = () => {
+    localStorage.setItem('luxe_tax_pct', document.getElementById('tax-reserve-pct').value);
+    renderSkatReport();
+  };
+
+  document.getElementById('mode-quarter').onclick = () => {
+    skatMode = 'quarter';
+    localStorage.setItem('luxe_skat_mode', skatMode);
+    populateSkatSelectors();
+    renderSkatReport();
+  };
+
+  document.getElementById('mode-half').onclick = () => {
+    skatMode = 'half';
+    localStorage.setItem('luxe_skat_mode', skatMode);
+    populateSkatSelectors();
+    renderSkatReport();
+  };
+
+  document.getElementById('copy-skat-btn').onclick = async () => {
+    if (!lastSkatReportText) return;
+    try {
+      await navigator.clipboard.writeText(lastSkatReportText);
+      const btn = document.getElementById('copy-skat-btn');
+      const old = btn.textContent;
+      btn.textContent = '✅ Скопировано для SKAT!';
+      setTimeout(() => btn.textContent = old, 2200);
+    } catch (e) {
+      alert(lastSkatReportText);
+    }
+  };
+
   updateIncomePreview();
 
-  // Sync Expenses
   onSnapshot(collection(db, "expenses"), (snap) => {
     allExpenses = snap.docs.map(d => {
       const data = d.data();
@@ -251,7 +428,6 @@ function initApp() {
     renderData();
   });
 
-  // Sync Manual Incomes
   onSnapshot(collection(db, "incomes"), (snap) => {
     allIncomes = snap.docs.map(d => {
       const data = d.data();
@@ -265,7 +441,6 @@ function initApp() {
     renderData();
   });
 
-  // Sync CRM Completed Deals
   onSnapshot(collection(db, "clients"), (snap) => {
     crmClients = snap.docs.map(d => ({id: d.id, ...d.data()}));
     renderData();
@@ -278,18 +453,10 @@ window.deleteItem = async function(col, id) {
   }
 }
 
-function renderData() {
-  const selectedMonth = document.getElementById('month-filter').value;
-
-  const expenses = allExpenses.filter(e => e.date && e.date.startsWith(selectedMonth));
-  const expTotal = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-
-  const incomesManual = allIncomes.filter(i => i.date && i.date.startsWith(selectedMonth));
-
+function getAllCombinedIncomes() {
   const crmIncomes = crmClients.filter(c => {
     if(!c.created) return false;
-    const d = new Date(c.created).toISOString().substring(0,7);
-    return d === selectedMonth && (c.status === "Завершен" || c.status === "Оплачен");
+    return c.status === "Завершен" || c.status === "Оплачен";
   }).map(c => ({
     id: c.id,
     date: new Date(c.created).toISOString().substring(0,10),
@@ -298,17 +465,82 @@ function renderData() {
     isCrm: true
   }));
 
-  const combinedIncomes = [...incomesManual.map(i => ({...i, isCrm: false})), ...crmIncomes];
+  return [...allIncomes.map(i => ({...i, isCrm: false})), ...crmIncomes];
+}
+
+function renderSkatReport() {
+  const year = document.getElementById('skat-year').value;
+  const period = document.getElementById('skat-period').value;
+  const pct = Math.max(0, Math.min(100, Number(document.getElementById('tax-reserve-pct').value) || 0));
+  const { months, deadline } = getPeriodRange(year, period);
+
+  const prefixes = months.map(m => `${year}-${m}`);
+  const allInc = getAllCombinedIncomes();
+
+  const pIncomes = allInc.filter(i => i.date && prefixes.some(p => i.date.startsWith(p)));
+  const pExpenses = allExpenses.filter(e => e.date && prefixes.some(p => e.date.startsWith(p)));
+
+  // Оборот без Moms
+  const revExclMoms = pIncomes.reduce((s, i) => s + Number(i.amount || 0), 0);
+  // Salgsmoms (+25% от оборота)
+  const salgsMoms = Math.round(revExclMoms * 0.25 * 100) / 100;
+
+  // Расходы в чеках обычно с Moms (25% сверху -> 20% внутри суммы)
+  const expGross = pExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const kobsMoms = Math.round(expGross * 0.20 * 100) / 100;
+  const expExclMoms = Math.round((expGross - kobsMoms) * 100) / 100;
+
+  // Moms к уплате в SKAT (Salgsmoms - Købsmoms)
+  const momsDue = Math.round((salgsMoms - kobsMoms) * 100) / 100;
+
+  // Чистая прибыль до подоходного налога
+  const profitBeforeTax = Math.round((revExclMoms - expExclMoms) * 100) / 100;
+  const taxableProfit = Math.max(0, profitBeforeTax);
+
+  // Резерв под подоходный налог (% от чистой прибыли)
+  const taxReserve = Math.round(taxableProfit * (pct / 100) * 100) / 100;
+
+  // Безопасно можно забрать себе (прибыль после налогового резерва)
+  const safeTakeHome = Math.round((profitBeforeTax - taxReserve) * 100) / 100;
+
+  document.getElementById('sk-rev').textContent = `${fmt(revExclMoms)} DKK`;
+  document.getElementById('sk-exp-sub').textContent = `Расходы без Moms: ${fmt(expExclMoms)} DKK (чеки: ${fmt(expGross)} DKK)`;
+  document.getElementById('sk-moms-due').textContent = `${fmt(momsDue)} DKK`;
+  document.getElementById('sk-moms-detail').textContent = `Salgsmoms ${fmt(salgsMoms)} − Købsmoms ${fmt(kobsMoms)}`;
+  document.getElementById('sk-pct-label').textContent = pct;
+  document.getElementById('sk-tax-reserve').textContent = `${fmt(taxReserve)} DKK`;
+  document.getElementById('sk-profit-sub').textContent = `С чистой прибыли: ${fmt(profitBeforeTax)} DKK`;
+  document.getElementById('sk-safe-take').textContent = `${fmt(safeTakeHome)} DKK`;
+  document.getElementById('sk-deadline').innerHTML = `📅 Срок подачи и оплаты Moms в SKAT (TastSelv Erhverv): <b>до ${deadline}</b>`;
+
+  lastSkatReportText =
+    `SKAT Moms & Skat отчёт — Luxe Renovation (CVR 46769074)\n` +
+    `Период: ${period} ${year} (${skatMode === 'quarter' ? 'Квартальный' : 'Полугодовой'})\n` +
+    `----------------------------------------\n` +
+    `1. Оборот без Moms (Omsætning): ${fmt(revExclMoms)} DKK\n` +
+    `2. Salgsmoms (исходящий +25%): ${fmt(salgsMoms)} DKK\n` +
+    `3. Købsmoms (входящий по чекам): ${fmt(kobsMoms)} DKK\n` +
+    `4. Итого Moms к уплате в SKAT: ${fmt(momsDue)} DKK\n` +
+    `5. Чистая прибыль периода: ${fmt(profitBeforeTax)} DKK\n` +
+    `6. Налоговый резерв (${pct}%): ${fmt(taxReserve)} DKK\n` +
+    `7. Свободный остаток после резервов: ${fmt(safeTakeHome)} DKK\n` +
+    `Дедлайн подачи/оплаты Moms: до ${deadline}`;
+}
+
+function renderData() {
+  const selectedMonth = document.getElementById('month-filter').value;
+
+  const expenses = allExpenses.filter(e => e.date && e.date.startsWith(selectedMonth));
+  const expTotal = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  const combinedIncomes = getAllCombinedIncomes().filter(i => i.date && i.date.startsWith(selectedMonth));
 
   // 1. Чистая сумма в фактуру
   const incTotal = combinedIncomes.reduce((sum, i) => sum + Number(i.amount || 0), 0);
-
   // 2. Дополнительный Moms (+25%)
   const momsTotal = Math.round(incTotal * 0.25 * 100) / 100;
-
   // 3. Итого с Moms (+25%)
   const grossTotal = Math.round((incTotal + momsTotal) * 100) / 100;
-
   // 4. Чистая сумма после расходов
   const netAfterExp = Math.round((incTotal - expTotal) * 100) / 100;
 
@@ -327,8 +559,7 @@ function renderData() {
     netEl.style.color = "var(--red)";
   }
 
-  const expTable = document.getElementById('expenses-list');
-  expTable.innerHTML = expenses.map(e => `
+  document.getElementById('expenses-list').innerHTML = expenses.map(e => `
     <tr>
       <td>${e.date}</td>
       <td><b>${e.title}</b><br><span class="badge">${e.cat}</span></td>
@@ -337,24 +568,25 @@ function renderData() {
     </tr>
   `).join('');
 
-  const incTable = combinedIncomes.map(i => {
+  document.getElementById('income-list').innerHTML = combinedIncomes.map(i => {
     const amt = Number(i.amount || 0);
     const moms = Math.round(amt * 0.25 * 100) / 100;
     const total = Math.round((amt + moms) * 100) / 100;
     return `
-    <tr>
-      <td>${i.date}</td>
-      <td>${i.title}</td>
-      <td style="color:var(--green); font-weight:600;">${fmt(amt)} DKK</td>
-      <td style="color:var(--gold); font-weight:500;">+${fmt(moms)} DKK</td>
-      <td style="font-weight:600;">${fmt(total)} DKK</td>
-      <td>${i.isCrm ? '-' : `<button class="del-btn" onclick="deleteItem('incomes', '${i.id}')">🗑️</button>`}</td>
-    </tr>
-  `}).join('');
-  document.getElementById('income-list').innerHTML = incTable;
+      <tr>
+        <td>${i.date}</td>
+        <td>${i.title}</td>
+        <td style="color:var(--green); font-weight:600;">${fmt(amt)} DKK</td>
+        <td style="color:var(--gold); font-weight:500;">+${fmt(moms)} DKK</td>
+        <td style="font-weight:600;">${fmt(total)} DKK</td>
+        <td>${i.isCrm ? '-' : `<button class="del-btn" onclick="deleteItem('incomes', '${i.id}')">🗑️</button>`}</td>
+      </tr>
+    `;
+  }).join('');
+
+  renderSkatReport();
 }
 
-// Submit Expense
 document.getElementById('expense-form').onsubmit = async (e) => {
   e.preventDefault();
   const fileInput = document.getElementById('ex-receipt');
@@ -381,7 +613,6 @@ document.getElementById('expense-form').onsubmit = async (e) => {
   document.getElementById('ex-date').valueAsDate = new Date();
 };
 
-// Submit Manual Income
 document.getElementById('income-form').onsubmit = async (e) => {
   e.preventDefault();
   const rec = {
