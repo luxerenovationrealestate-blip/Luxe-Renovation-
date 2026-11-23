@@ -41,7 +41,7 @@ async function transcribeAudio(fileUrl) {
   return data.text || '';
 }
 
-// 2. Мульти-анализ текста через GPT-4o-mini
+// 2. Умный мульти-анализ текста через GPT-4o-mini (разделение доходов и расходов + категории)
 async function parseMultipleTransactions(text) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -51,14 +51,39 @@ async function parseMultipleTransactions(text) {
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
       messages: [
         {
           role: 'system',
-          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. Определи тип операции: "income" (доход, аванс, фактура, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки точную сумму (number) и чистое описание (string). Верни строго JSON-массив: [{"type": "income", "title": "Аванс", "amount": 2000}]'
+          content: `Ты финансовый контролёр строительной компании Luxe Renovation (Дания).
+Твоя главная задача — безошибочно разделять ДОХОДЫ и РАСХОДЫ в сообщении пользователя (в одном сообщении может быть сразу несколько разных операций).
+
+ПРАВИЛА КЛАССИФИКАЦИИ:
+1. "income" (ДОХОД):
+   - Деньги, которые ПОЛУЧИЛА компания или выставила клиенту: "фактура", "счёт клиенту", "оплата от заказчика", "пришло", "зашло", "получил", "перевели за работу", "аванс от клиента", знак "+" перед суммой.
+   - Категория для income всегда: "Доход с объекта".
+
+2. "expense" (РАСХОД):
+   - Деньги, которые ПОТРАТИЛА компания: "купил", "закупка", "чек", "оплатил", "потратил", "бензин", "дизель", "парковка", "материалы", "краска", "шпаклёвка", "инструмент", "аренда", "выдал аванс рабочему/сотруднику", "зарплата", знак "-" перед суммой.
+   - Если слово "аванс" без уточнения, что это от клиента (например, просто "аванс 2000" или "дал аванс"), в строительной бригаде это выдача аванса работнику -> "expense". Если "аванс от клиента / за объект" -> "income".
+   - Подбери точную категорию для expense строго из списка: "Материалы", "Инструмент", "Транспорт", "Субподряд", "Прочее".
+
+Верни строго JSON-объект формата:
+{
+  "transactions": [
+    {
+      "type": "income" | "expense",
+      "title": "Короткое чистое описание",
+      "amount": 100000,
+      "category": "Доход с объекта" | "Материалы" | "Инструмент" | "Транспорт" | "Субподряд" | "Прочее"
+    }
+  ]
+}`
         },
         { role: 'user', content: text }
       ],
-      max_tokens: 300
+      max_tokens: 400
     })
   });
 
@@ -66,11 +91,11 @@ async function parseMultipleTransactions(text) {
   if (!response.ok) throw new Error(data.error?.message || 'Ошибка AI парсинга');
 
   const content = data.choices[0].message.content.trim();
-  const jsonClean = content.replace(/```json/g, '').replace(/```/g, '').trim();
-  return JSON.parse(jsonClean);
+  const parsed = JSON.parse(content);
+  return Array.isArray(parsed.transactions) ? parsed.transactions : [];
 }
 
-// 3. Анализ изображения (чек / скриншот) через Vision API
+// 3. Умный анализ изображения (чек из магазина vs фактура/входящий перевод)
 async function analyzeImage(imageUrl) {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -80,16 +105,35 @@ async function analyzeImage(imageUrl) {
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
       messages: [
         {
           role: 'user',
           content: [
-            { type: 'text', text: 'Определи документ: чек (expense) или перевод от клиента (income). Верни строго JSON-массив: [{"type": "expense" или "income", "title": "описание", "amount": число}]' },
+            {
+              type: 'text',
+              text: `Проанализируй изображение для бухгалтерии строительной компании Luxe Renovation:
+- Если это кассовый чек, квитанция из магазина (STARK, Bauhaus, Silvan, Jem & fix, Circle K, Netto и т.д.) или счёт на оплату материалов/топлива — это "expense".
+- Если это скриншот входящего банковского перевода на счёт Luxe Renovation или исходящая фактура от Luxe Renovation клиенту — это "income" (бери сумму без Moms, если указана разбивка).
+
+Верни строго JSON-объект:
+{
+  "transactions": [
+    {
+      "type": "expense" | "income",
+      "title": "Название магазина или суть платежа",
+      "amount": число,
+      "category": "Доход с объекта" | "Материалы" | "Инструмент" | "Транспорт" | "Субподряд" | "Прочее"
+    }
+  ]
+}`
+            },
             { type: 'image_url', image_url: { url: imageUrl } }
           ]
         }
       ],
-      max_tokens: 150
+      max_tokens: 250
     })
   });
 
@@ -97,25 +141,36 @@ async function analyzeImage(imageUrl) {
   if (!response.ok) throw new Error(data.error?.message || 'Ошибка Vision API');
 
   const content = data.choices[0].message.content.trim();
-  const jsonClean = content.replace(/```json/g, '').replace(/```/g, '').trim();
-  return JSON.parse(jsonClean);
+  const parsed = JSON.parse(content);
+  return Array.isArray(parsed.transactions) ? parsed.transactions : [];
 }
 
-// 4. Сохранение транзакции в Firestore (чистая сумма + дополнительный Moms 25%)
-async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
-  if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
+// 4. Сохранение транзакции в Firestore (раздельные коллекции incomes и expenses)
+async function saveTransaction(chatId, rawType, amount, title, category = '', receiptUrl = '') {
+  if (isNaN(amount) || amount <= 0 || amount > 2000000) return false;
+
+  // Дополнительная страховка по знакам + / -
+  let type = rawType === 'income' ? 'income' : 'expense';
+  const trimmedTitle = String(title || '').trim();
+  if (trimmedTitle.startsWith('+')) type = 'income';
+  if (trimmedTitle.startsWith('-')) type = 'expense';
+
+  const allowedExpenseCats = ['Материалы', 'Инструмент', 'Транспорт', 'Субподряд', 'Прочее'];
+  const finalCategory = type === 'income'
+    ? 'Доход с объекта'
+    : (allowedExpenseCats.includes(category) ? category : 'Прочее');
 
   const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0;
   const grossAmount = type === 'income' ? Math.round((amount + momsAmount) * 100) / 100 : amount;
 
   const collectionName = type === 'income' ? 'incomes' : 'expenses';
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}`;
-  
+
   const firestoreBody = {
     fields: {
       amount: { doubleValue: amount },
-      title: { stringValue: title },
-      cat: { stringValue: type === 'income' ? 'Доход с объекта' : 'Материалы' },
+      title: { stringValue: trimmedTitle.replace(/^[+-]\s*/, '') },
+      cat: { stringValue: finalCategory },
       date: { stringValue: new Date().toISOString().substring(0, 10) },
       created: { stringValue: Date.now().toString() },
       chatId: { stringValue: chatId.toString() },
@@ -132,16 +187,22 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   });
 
   if (dbResponse.ok) {
+    const cleanTitle = trimmedTitle.replace(/^[+-]\s*/, '');
     if (type === 'income') {
       await sendMessage(
-        chatId, 
-        `🟢 **Доход зафиксирован:** — ${title}\n` +
+        chatId,
+        `🟢 **ДОХОД зафиксирован:** — ${cleanTitle}\n` +
         `💵 *Чистая сумма в фактуру:* ${fmt(amount)} DKK\n` +
         `🧾 *Доп. Moms (+25%):* +${fmt(momsAmount)} DKK\n` +
         `💰 *Итого с Moms (+25%):* **${fmt(grossAmount)} DKK**`
       );
     } else {
-      await sendMessage(chatId, `🔴 **Расход записан:**\n💸 -${fmt(amount)} DKK — ${title}`);
+      await sendMessage(
+        chatId,
+        `🔴 **РАСХОД записан:** — ${cleanTitle}\n` +
+        `📂 *Категория:* ${finalCategory}\n` +
+        `💸 *Сумма:* -${fmt(amount)} DKK`
+      );
     }
     return true;
   }
@@ -169,7 +230,7 @@ export default async function handler(req, res) {
         await sendMessage(chatId, `🎤 Слушаю и расшифровываю голосовое...`);
         try {
           const text = await transcribeAudio(fileUrl);
-          
+
           if (text.toLowerCase().includes('moms') || text.toLowerCase().includes('налог')) {
             await sendMomsInfo(chatId);
             return res.status(200).json({ ok: true });
@@ -178,7 +239,7 @@ export default async function handler(req, res) {
           const items = await parseMultipleTransactions(text);
           if (Array.isArray(items) && items.length > 0) {
             for (const item of items) {
-              await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || text);
+              await saveTransaction(chatId, item.type, Number(item.amount), item.title || text, item.category);
             }
           } else {
             await sendMessage(chatId, `❌ Не удалось найти суммы в голосе: «${text}»`);
@@ -204,7 +265,7 @@ export default async function handler(req, res) {
           const items = await analyzeImage(fileUrl);
           if (Array.isArray(items) && items.length > 0) {
             for (const item of items) {
-              await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || 'Чек/Документ', fileUrl);
+              await saveTransaction(chatId, item.type, Number(item.amount), item.title || 'Чек/Документ', item.category, fileUrl);
             }
           } else {
             await sendMessage(chatId, `❌ Не удалось распознать документ.`);
@@ -222,7 +283,10 @@ export default async function handler(req, res) {
       const lowerText = text.toLowerCase();
 
       if (text === '/start' || lowerText === 'id') {
-        await sendMessage(chatId, `🤖 Бот **Luxe Renovation** на связи!\nВаш Chat ID: \`${chatId}\`\n\n📌 Возможности:\n• /moms — график сдачи и уплаты Moms\n• Текст: «Фактура 100000», «Купил краску 1500»\n• Голосовые сообщения\n• Фото чеков и скриншоты`);
+        await sendMessage(
+          chatId,
+          `🤖 Бот **Luxe Renovation** на связи!\nВаш Chat ID: \`${chatId}\`\n\n📌 Возможности:\n• /moms — график сдачи и уплаты Moms\n• Текст или голос: «Выставил фактуру 100000, купил краску 1500, бензин 400» — бот сам разделит доходы и расходы по категориям\n• Фото чеков и скриншоты переводов`
+        );
         return res.status(200).json({ ok: true });
       }
 
@@ -235,7 +299,7 @@ export default async function handler(req, res) {
         const items = await parseMultipleTransactions(text);
         if (Array.isArray(items) && items.length > 0) {
           for (const item of items) {
-            await saveTransaction(chatId, item.type || 'expense', Number(item.amount), item.title || text);
+            await saveTransaction(chatId, item.type, Number(item.amount), item.title || text, item.category);
           }
         } else {
           await sendMessage(chatId, `❌ Не удалось распознать сумму и тип операции.`);
@@ -253,13 +317,14 @@ export default async function handler(req, res) {
 }
 
 async function sendMomsInfo(chatId) {
-  const msg = `🇩🇰 **График уплаты Moms (Skattestyrelsen):**\n\n` +
-              `🏢 **Luxe Renovation (CVR: 46769074)**\n` +
-              `📍 Lyngbyvej 83A, 2100 København Ø\n\n` +
-              `🔹 **Q1 (Январь — Март):** Сдача и уплата до **1 июня**\n` +
-              `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
-              `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
-              `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
-              `💡 К чистой сумме в фактуру автоматически добавляется **+25% Moms**.`;
+  const msg =
+    `🇩🇰 **График уплаты Moms (Skattestyrelsen):**\n\n` +
+    `🏢 **Luxe Renovation (CVR: 46769074)**\n` +
+    `📍 Lyngbyvej 83A, 2100 København Ø\n\n` +
+    `🔹 **Q1 (Январь — Март):** Сдача и уплата до **1 июня**\n` +
+    `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
+    `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
+    `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
+    `💡 К чистой сумме в фактуру автоматически добавляется **+25% Moms**.`;
   await sendMessage(chatId, msg);
 }
