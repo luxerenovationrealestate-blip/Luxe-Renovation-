@@ -5,6 +5,10 @@ const PROJECT_ID = 'luxe-renovation-72e1a';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const OPENAI_API_KEY = process.env.OPEN_KEY || process.env.OPENAI_API_KEY;
 
+function fmt(num) {
+  return Number(num || 0).toLocaleString('da-DK', { maximumFractionDigits: 2 });
+}
+
 async function sendMessage(chatId, text) {
   try {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -50,7 +54,7 @@ async function parseMultipleTransactions(text) {
       messages: [
         {
           role: 'system',
-          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. Определи тип операции: "income" (доход, аванс, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки точную сумму (number) и чистое описание (string). Верни строго JSON-массив: [{"type": "income", "title": "Аванс", "amount": 2000}]'
+          content: 'Ты профессиональный финансовый помощник. Проанализируй текст пользователя. Определи тип операции: "income" (доход, аванс, фактура, получено, пришло) или "expense" (расход, покупка, материал, трата), извлеки точную сумму (number) и чистое описание (string). Верни строго JSON-массив: [{"type": "income", "title": "Аванс", "amount": 2000}]'
         },
         { role: 'user', content: text }
       ],
@@ -97,20 +101,12 @@ async function analyzeImage(imageUrl) {
   return JSON.parse(jsonClean);
 }
 
-// 4. Сохранение транзакции в Firestore с правильным расчётом B-skat с учётом Fradrag
+// 4. Сохранение транзакции в Firestore (чистая сумма + дополнительный Moms 25%)
 async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
   if (isNaN(amount) || amount <= 0 || amount > 500000) return false;
 
   const momsAmount = type === 'income' ? Math.round(amount * 0.25 * 100) / 100 : 0;
-  const grossAmount = type === 'income' ? amount + momsAmount : amount; 
-
-  // Налоговая математика с учётом Fradrag 16.123 DKK
-  const amBidrag = type === 'income' ? Math.round(amount * 0.08 * 100) / 100 : 0; // 8%
-  const profitAfterAm = amount - amBidrag;
-  const monthlyFradrag = 16123;
-  const baseForBSkat = Math.max(0, profitAfterAm - monthlyFradrag);
-  const bSkat = type === 'income' ? Math.round(baseForBSkat * 0.36 * 100) / 100 : 0; // 36%
-  const takeHome = type === 'income' ? Math.round((amount - amBidrag - bSkat) * 100) / 100 : 0;
+  const grossAmount = type === 'income' ? Math.round((amount + momsAmount) * 100) / 100 : amount;
 
   const collectionName = type === 'income' ? 'incomes' : 'expenses';
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}`;
@@ -125,8 +121,7 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
       chatId: { stringValue: chatId.toString() },
       receipt: { stringValue: receiptUrl },
       moms: { doubleValue: momsAmount },
-      amBidrag: { doubleValue: amBidrag },
-      bSkat: { doubleValue: bSkat }
+      grossAmount: { doubleValue: grossAmount }
     }
   };
 
@@ -138,17 +133,15 @@ async function saveTransaction(chatId, type, amount, title, receiptUrl = '') {
 
   if (dbResponse.ok) {
     if (type === 'income') {
-      await sendMessage(chatId, 
-        `🟢 **Доход зафиксирован:**\n💰 +${amount.toLocaleString()} DKK (Ваш доход) — ${title}\n` +
-        `🧾 *Чек заказчику (+25% Moms):* ${grossAmount.toLocaleString()} DKK\n\n` +
-        `📊 *Налоговая раскладка с ${amount.toLocaleString()} DKK:*\n` +
-        `• AM-bidrag (8%): ~${amBidrag.toLocaleString()} DKK\n` +
-        `• Необлагаемый Fradrag: 16.123 DKK / мес.\n` +
-        `• B-skat (36% с Fradrag): ~${bSkat.toLocaleString()} DKK\n` +
-        `💵 *Чистыми на руки (без учёта расходов):* ~${takeHome.toLocaleString()} DKK`
+      await sendMessage(
+        chatId, 
+        `🟢 **Доход зафиксирован:** — ${title}\n` +
+        `💵 *Чистая сумма в фактуру:* ${fmt(amount)} DKK\n` +
+        `🧾 *Доп. Moms (+25%):* +${fmt(momsAmount)} DKK\n` +
+        `💰 *Итого с Moms (+25%):* **${fmt(grossAmount)} DKK**`
       );
     } else {
-      await sendMessage(chatId, `🔴 **Расход записан:**\n💸 -${amount.toLocaleString()} DKK — ${title}`);
+      await sendMessage(chatId, `🔴 **Расход записан:**\n💸 -${fmt(amount)} DKK — ${title}`);
     }
     return true;
   }
@@ -229,11 +222,11 @@ export default async function handler(req, res) {
       const lowerText = text.toLowerCase();
 
       if (text === '/start' || lowerText === 'id') {
-        await sendMessage(chatId, `🤖 Бот **Luxe Renovation** на связи!\nВаш Chat ID: \`${chatId}\`\n\n📌 Возможности:\n• /moms — налоги и график уплаты\n• Текст: «Аванс за объект 100000», «Купил краску 1500»\n• Голосовые сообщения\n• Фото чеков и скриншоты`);
+        await sendMessage(chatId, `🤖 Бот **Luxe Renovation** на связи!\nВаш Chat ID: \`${chatId}\`\n\n📌 Возможности:\n• /moms — график сдачи и уплаты Moms\n• Текст: «Фактура 100000», «Купил краску 1500»\n• Голосовые сообщения\n• Фото чеков и скриншоты`);
         return res.status(200).json({ ok: true });
       }
 
-      if (lowerText === '/moms' || lowerText.includes('moms') || lowerText.includes('налог') || lowerText.includes('skat')) {
+      if (lowerText === '/moms' || lowerText.includes('moms') || lowerText.includes('налог')) {
         await sendMomsInfo(chatId);
         return res.status(200).json({ ok: true });
       }
@@ -260,12 +253,13 @@ export default async function handler(req, res) {
 }
 
 async function sendMomsInfo(chatId) {
-  const msg = `🇩🇰 **График уплаты налогов и Moms (Skattestyrelsen):**\n\n` +
-              `🏢 **Luxe Renovation (CVR: 46769074)**\n\n` +
+  const msg = `🇩🇰 **График уплаты Moms (Skattestyrelsen):**\n\n` +
+              `🏢 **Luxe Renovation (CVR: 46769074)**\n` +
+              `📍 Lyngbyvej 83A, 2100 København Ø\n\n` +
               `🔹 **Q1 (Январь — Март):** Сдача и уплата до **1 июня**\n` +
               `🔹 **Q2 (Апрель — Июнь):** Сдача и уплата до **1 сентября**\n` +
               `🔹 **Q3 (Июль — Сентябрь):** Сдача и уплата до **1 декабря**\n` +
               `🔹 **Q4 (Октябрь — Декабрь):** Сдача и уплата до **1 марта**\n\n` +
-              `💡 Параметры 2026: Moms +25%, AM-bidrag 8%, Fradrag 16.123 kr./мес., B-skat 36%!`;
+              `💡 К чистой сумме в фактуру автоматически добавляется **+25% Moms**.`;
   await sendMessage(chatId, msg);
 }
